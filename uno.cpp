@@ -1,7 +1,11 @@
 /*
-Name:
-Date:
-Purpose:
+Name: Samuel Gerungan
+Date: 1/28/25
+Purpose: Use various methods to create a functioning UNO game in c++
+
+//PROJECT OUTLINE
+
+Upon program execution, user will be prompted into a menu (will be modular for future iteration which will include option to add more NPC opponents)
 */
 
 // System Libraries
