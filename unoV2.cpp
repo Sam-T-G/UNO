@@ -49,6 +49,8 @@ int main(int argv, char **argc)
         menuSel; // main menu selection
 
     unsigned int
+        plyCnt,  // player card count
+        npcCnt,  // npc card count
         card,    // card placeholder
         redCard, // user number of red cards
         bluCard, // user number of blue cards
@@ -60,7 +62,7 @@ int main(int argv, char **argc)
         npcGrn;  // npc number of green cards
 
     // Initialize Variables
-    redCard = bluCard = yelCard = grnCard = npcRed = npcBlu = npcYel = npcGrn = 0; // mass initialization of base card value to 0
+    redCard = bluCard = yelCard = grnCard = npcRed = npcBlu = npcYel = npcGrn = plyCnt = npcCnt = 0; // mass initialization of base card value to 0
     // CREATE MENU
     cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
     cout << "UNO! The game where friendships and loyalties go to die" << endl;
@@ -70,27 +72,54 @@ int main(int argv, char **argc)
          << endl;
     cout << "Type the character that corresponds to your selections within this game" << endl
          << endl;
-    cout << "| S : Start Game | E : Exit Game |" << endl;
+    cout << "| S : Start Game | E : Exit Game |" << endl
+         << endl;
     cin >> menuSel;
 
     // Map the inputs and outputs - Process
     // INITIAL DRAW of 5 CARDS
-    for (int i = 0; i < 5; i++)
-    {                                                 // PLAYER CARDS
+
+    // PLAYER CARDS
+    for (int i = 0; i < 7; i++) // first hand initialized to seven cards
+    {
         card = rand() % 4;                            // random 0-3 representing four colors - red blue yellow green
         card == 0 ? redCard++ : card == 1 ? bluCard++ // ternary operator to translate random card draw
                             : card == 2   ? yelCard++
                                           : grnCard++;
-    }
-    for (int i = 0; i < 5; i++)
-    {                                               // NPC CARDS
-        card = rand() % 4;                          // random 0-3 representing four colors - red blue yellow green
-        card == 0 ? npcRed++ : card == 1 ? npcBlu++ // ternary operator to translate random card draw
-                           : card == 2   ? npcYel++
-                                         : npcGrn++;
+        plyCnt++;
     }
 
-    cout << "Red Cards: " << redCard << " Blue Cards : " << bluCard << " Yellow Cards: " << yelCard << " Green Cards: " << grnCard << endl;
+    // NPC Cards
+    for (int i = 0; i < 7; i++) // first hand initialized to seven cards
+    {
+        card = rand() % 4; // random 0-3 representing four colors - red blue yellow green
+        switch (card)      // this time we utilize a switch case to determine NPC draws
+        {
+        case 0:
+            npcRed++;
+            break;
+        case 1:
+            npcBlu++;
+            break;
+        case 2:
+            npcYel++;
+            break;
+        case 3:
+            npcGrn++;
+            break;
+        }
+        npcCnt++;
+    }
+    // debug check for NPC HAND
+    // cout << "Red Cards: " << npcRed << " Blue Cards : " << npcBlu << " Yellow Cards: " << npcYel << " Green Cards: " << npcGrn << endl;
+
+    // player hand display
+
+    cout << endl
+         << "| Red Cards: " << redCard << " | Blue Cards : " << bluCard << " | Yellow Cards: " << yelCard << " | Green Cards: "
+         << grnCard << " | Total number of cards in hand: " << plyCnt << " |" << endl;
+
+    // Prompt for how player wants to proceed
 
     // Display and output the results
 
