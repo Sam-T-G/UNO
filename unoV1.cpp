@@ -42,12 +42,14 @@ using namespace std;
 int main(int argv, char **argc)
 {
     // Random seeds are set for random number generator
+    srand(static_cast<unsigned int>(time(0)));
 
     // Declare Variables
     char
         menuSel; // main menu selection
 
     unsigned int
+        card,    // card placeholder
         redCard, // user number of red cards
         bluCard, // user number of blue cards
         yelCard, // user number of yellow cards
@@ -64,12 +66,25 @@ int main(int argv, char **argc)
     cout << "UNO! The game where friendships and loyalties go to die" << endl;
     cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl
          << endl;
-    cout << "Main Menu" << endl;
-    cout << "Type the character that corresponds to your selections within this game" << endl;
+    cout << "Main Menu" << endl
+         << endl;
+    cout << "Type the character that corresponds to your selections within this game" << endl
+         << endl;
     cout << "| S : Start Game | E : Exit Game |";
     cin >> menuSel;
+    cout << endl;
 
     // Map the inputs and outputs - Process
+    // INITIAL DRAW of 5 CARDS
+    for (int i = 0; i < 5; i++)
+    {
+        card = rand() % 4;                            // random 0-3 representing four colors - red blue yellow green
+        card == 0 ? redCard++ : card == 1 ? bluCard++ // ternary operator to translate random card draw
+                            : card == 2   ? yelCard++
+                                          : grnCard++;
+    }
+
+    cout << "Red Cards: " << redCard << " Blue Cards : " << bluCard << " Yellow Cards: " << yelCard << " Green Cards: " << grnCard << endl;
 
     // Display and output the results
 
