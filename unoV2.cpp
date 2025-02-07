@@ -46,11 +46,15 @@ int main(int argv, char **argc)
 
     // Declare Variables
     char
-        menuSel; // main menu selection
+        menuSel; // menu selection
+
+    string
+        actCol; // active color
 
     unsigned int
         plyCnt,  // player card count
         npcCnt,  // npc card count
+        actCrd,  // active card
         card,    // card placeholder
         redCard, // user number of red cards
         bluCard, // user number of blue cards
@@ -72,11 +76,14 @@ int main(int argv, char **argc)
          << endl;
     cout << "Type the character that corresponds to your selections within this game" << endl
          << endl;
-    cout << "| S : Start Game | E : Exit Game |" << endl
+    cout << "| Press any Key to Start the Game |" << endl
          << endl;
     cin >> menuSel;
+    cout << endl
+         << endl;
 
     // Map the inputs and outputs - Process
+
     // INITIAL DRAW of 5 CARDS
 
     // PLAYER CARDS
@@ -110,16 +117,138 @@ int main(int argv, char **argc)
         }
         npcCnt++;
     }
-    // debug check for NPC HAND
-    // cout << "Red Cards: " << npcRed << " Blue Cards : " << npcBlu << " Yellow Cards: " << npcYel << " Green Cards: " << npcGrn << endl;
 
-    // player hand display
+    // generate an active card in play
+    actCrd = rand() % 4;
 
-    cout << endl
-         << "| Red Cards: " << redCard << " | Blue Cards : " << bluCard << " | Yellow Cards: " << yelCard << " | Green Cards: "
-         << grnCard << " | Total number of cards in hand: " << plyCnt << " |" << endl;
+    do
+    { // debug check for NPC HAND
+        // cout << "Red Cards: " << npcRed << " Blue Cards : " << npcBlu << " Yellow Cards: " << npcYel << " Green Cards: " << npcGrn << endl;
 
-    // Prompt for how player wants to proceed
+        // if - else if statements to translate rng number into colors
+        if (actCrd == 0)
+        {
+            actCol = "Red";
+        }
+        else if (actCrd == 1)
+        {
+            actCol = "Blue";
+        }
+        else if (actCrd == 2)
+        {
+            actCol = "Yellow";
+        }
+        else if (actCrd == 3)
+        {
+            actCol = "Green";
+        }
+        cout << "CARD IN PLAY: " << actCol; // display card in play
+
+        // player hand display
+        cout << endl
+             << "| Red Cards: " << redCard << " | Blue Cards : " << bluCard << " | Yellow Cards: " << yelCard << " | Green Cards: "
+             << grnCard << " | Total number of cards in hand: " << plyCnt << " |" << endl
+             << endl;
+
+        // Prompt for how player wants to proceed
+        cout << "What would you like to do?" << endl;
+        cout << "| R: Play Red | B: Play Blue | Y: Play Yellow | G: Play Green | D: Draw Card | " << endl
+             << endl;
+        cin >> menuSel;
+        cout << endl;
+
+        if (menuSel == 'R' || menuSel == 'r')
+        {
+            if (redCard > 0 && actCrd == 0)
+            {
+                redCard--;
+                plyCnt--;
+                cout << "You play a red card!" << endl
+                     << endl;
+            }
+            else if (actCrd != 0)
+            {
+                cout << "The colors don't match!" << endl
+                     << endl;
+            }
+            else
+            {
+                cout << "You don't have any RED cards!" << endl
+                     << endl;
+            }
+        }
+        if (menuSel == 'B' || menuSel == 'b')
+        {
+            if (bluCard > 0 && actCrd == 1)
+            {
+                bluCard--;
+                plyCnt--;
+                cout << "You play a blue card!" << endl
+                     << endl;
+            }
+            else if (actCrd != 1)
+            {
+                cout << "The colors don't match!" << endl
+                     << endl;
+            }
+            else
+            {
+                cout << "You don't have any BLUE cards!" << endl
+                     << endl;
+            }
+        }
+        if (menuSel == 'Y' || menuSel == 'y')
+        {
+            if (yelCard > 0 && actCrd == 2)
+            {
+                yelCard--;
+                plyCnt--;
+                cout << "You play a yellow card!" << endl
+                     << endl;
+            }
+            else if (actCrd != 2)
+            {
+                cout << "The colors don't match!" << endl
+                     << endl;
+            }
+            else
+            {
+                cout << "You don't have any YELLOW cards!" << endl
+                     << endl;
+            }
+        }
+        if (menuSel == 'G' || menuSel == 'g')
+        {
+            if (grnCard > 0 && actCrd == 3)
+            {
+                grnCard--;
+                plyCnt--;
+                cout << "You play a green card!" << endl
+                     << endl;
+            }
+            else if (actCrd != 3)
+            {
+                cout << "The colors don't match!" << endl
+                     << endl;
+            }
+            else
+            {
+                cout << "You don't have any GREEN cards!" << endl
+                     << endl;
+            }
+        }
+        if (menuSel == 'D' || menuSel == 'd')
+        {
+            card = rand() % 4;
+            card == 0 ? redCard++ : card == 1 ? bluCard++ // ternary operator to translate random card draw
+                                : card == 2   ? yelCard++
+                                              : grnCard++;
+            plyCnt++;
+            cout << endl
+                 << endl;
+        }
+
+    } while (plyCnt != 0 || npcCnt != 0);
 
     // Display and output the results
 
