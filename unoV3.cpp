@@ -65,6 +65,8 @@ int main(int argv, char **argc)
         npcYel,  // npc number of yellow cards
         npcGrn;  // npc number of green cards
 
+    bool plyrTrn; // boolean that dictates if it's the player's turn
+
     // Initialize Variables
     redCard = bluCard = yelCard = grnCard = npcRed = npcBlu = npcYel = npcGrn = plyCnt = npcCnt = 0; // mass initialization of base card value to 0
     // CREATE MENU
@@ -121,6 +123,9 @@ int main(int argv, char **argc)
     // generate an active card in play
     actCrd = rand() % 4;
 
+    // set first turn to be on the player - can introduce randomized turns later using this boolean
+    plyrTrn = true;
+
     do
     { // debug check for NPC HAND
         // cout << "Red Cards: " << npcRed << " Blue Cards : " << npcBlu << " Yellow Cards: " << npcYel << " Green Cards: " << npcGrn << endl;
@@ -144,111 +149,246 @@ int main(int argv, char **argc)
         }
         cout << "CARD IN PLAY: " << actCol; // display card in play
 
-        // player hand display
-        cout << endl
-             << "| Red Cards: " << redCard << " | Blue Cards : " << bluCard << " | Yellow Cards: " << yelCard << " | Green Cards: "
-             << grnCard << " | Total number of cards in hand: " << plyCnt << " |" << endl
-             << endl;
-
-        // Prompt for how player wants to proceed
-        cout << "What would you like to do?" << endl;
-        cout << "| R: Play Red | B: Play Blue | Y: Play Yellow | G: Play Green | D: Draw Card | " << endl
-             << endl;
-        cin >> menuSel;
-        cout << endl;
-
-        if (menuSel == 'R' || menuSel == 'r') // if user selects either uppercase or lowercase r
-        {
-            if (redCard > 0 && actCrd == 0) // logic to verify user input and return appropriate responses
-            {
-                redCard--;
-                plyCnt--;
-                cout << "You play a red card!" << endl
-                     << endl;
-            }
-            else if (actCrd != 0) // if the card selected from menu option does not equal card in play
-            {
-                cout << "The colors don't match!" << endl
-                     << endl;
-            }
-            else // else user does not own any of the cards selected for play
-            {
-                cout << "You don't have any RED cards!" << endl
-                     << endl;
-            }
-        }
-        if (menuSel == 'B' || menuSel == 'b') // if user selects either uppercase or lowercase b
-        {
-            if (bluCard > 0 && actCrd == 1) // logic to verify user input and return appropriate responses
-            {
-                bluCard--;
-                plyCnt--;
-                cout << "You play a blue card!" << endl
-                     << endl;
-            }
-            else if (actCrd != 1) // if the card selected from menu option does not equal card in play
-            {
-                cout << "The colors don't match!" << endl
-                     << endl;
-            }
-            else // else user does not own any of the cards selected for play
-            {
-                cout << "You don't have any BLUE cards!" << endl
-                     << endl;
-            }
-        }
-        if (menuSel == 'Y' || menuSel == 'y') // if user selects either uppercase or lowercase y
-        {
-            if (yelCard > 0 && actCrd == 2) // logic to verify user input and return appropriate responses
-            {
-                yelCard--;
-                plyCnt--;
-                cout << "You play a yellow card!" << endl
-                     << endl;
-            }
-            else if (actCrd != 2) // if the card selected from menu option does not equal card in play
-            {
-                cout << "The colors don't match!" << endl
-                     << endl;
-            }
-            else // else user does not own any of the cards selected for play
-            {
-                cout << "You don't have any YELLOW cards!" << endl
-                     << endl;
-            }
-        }
-        if (menuSel == 'G' || menuSel == 'g') // if user selects either uppercase or lowercase g
-        {
-            if (grnCard > 0 && actCrd == 3) // logic to verify user input and return appropriate responses
-            {
-                grnCard--; // decrement card color count
-                plyCnt--;  // decrement overall hand card count
-                cout << "You play a green card!" << endl
-                     << endl;
-            }
-            else if (actCrd != 3) // if the card selected from menu option does not equal card in play
-            {
-                cout << "The colors don't match!" << endl
-                     << endl;
-            }
-            else // else user does not own any of the cards selected for play
-            {
-                cout << "You don't have any GREEN cards!" << endl
-                     << endl;
-            }
-        }
-        if (menuSel == 'D' || menuSel == 'd') // if user selects either uppercase or lowercase d
-        {
-            card = rand() % 4;                            // draw a random card value
-            card == 0 ? redCard++ : card == 1 ? bluCard++ // ternary operator to translate random card draw
-                                : card == 2   ? yelCard++
-                                              : grnCard++;
-            plyCnt++; // increment player hand count
+        // Check to see if it's the player's turn
+        if (plyrTrn == true)
+        { // player hand display
             cout << endl
+                 << "| Red Cards: " << redCard << " | Blue Cards : " << bluCard << " | Yellow Cards: " << yelCard << " | Green Cards: "
+                 << grnCard << " | Total number of cards in hand: " << plyCnt << " | Opponent number of cards: " << npcCnt << " |" << endl
                  << endl;
+
+            // Prompt for how player wants to proceed
+            cout << "What would you like to do?" << endl;
+            cout << "| R: Play Red | B: Play Blue | Y: Play Yellow | G: Play Green | D: Draw Card | " << endl
+                 << endl;
+            cin >> menuSel;
+            cout << endl;
+
+            if (menuSel == 'R' || menuSel == 'r') // if user selects either uppercase or lowercase r
+            {
+                if (plyrTrn == true)
+                {
+                    if (redCard > 0 && actCrd == 0) // logic to verify user input and return appropriate responses
+                    {
+                        redCard--;
+                        plyCnt--;
+                        cout << "You play a red card!" << endl
+                             << endl;
+                        plyrTrn = false;
+                    }
+                    else if (actCrd != 0) // if the card selected from menu option does not equal card in play
+                    {
+                        cout << "The colors don't match!" << endl
+                             << endl;
+                    }
+                    else // else user does not own any of the cards selected for play
+                    {
+                        cout << "You don't have any RED cards!" << endl
+                             << endl;
+                    }
+                }
+            }
+
+            if (menuSel == 'B' || menuSel == 'b') // if user selects either uppercase or lowercase b
+            {
+                if (plyrTrn == true)
+                {
+                    if (bluCard > 0 && actCrd == 1) // logic to verify user input and return appropriate responses
+                    {
+                        bluCard--;
+                        plyCnt--;
+                        cout << "You play a blue card!" << endl
+                             << endl;
+                        plyrTrn = false;
+                    }
+                    else if (actCrd != 1) // if the card selected from menu option does not equal card in play
+                    {
+                        cout << "The colors don't match!" << endl
+                             << endl;
+                    }
+                    else // else user does not own any of the cards selected for play
+                    {
+                        cout << "You don't have any BLUE cards!" << endl
+                             << endl;
+                    }
+                }
+            }
+
+            if (menuSel == 'Y' || menuSel == 'y') // if user selects either uppercase or lowercase y
+            {
+                if (plyrTrn == true)
+                {
+                    if (yelCard > 0 && actCrd == 2) // logic to verify user input and return appropriate responses
+                    {
+                        yelCard--;
+                        plyCnt--;
+                        cout << "You play a yellow card!" << endl
+                             << endl;
+                        plyrTrn = false;
+                    }
+                    else if (actCrd != 2) // if the card selected from menu option does not equal card in play
+                    {
+                        cout << "The colors don't match!" << endl
+                             << endl;
+                    }
+                    else // else user does not own any of the cards selected for play
+                    {
+                        cout << "You don't have any YELLOW cards!" << endl
+                             << endl;
+                    }
+                }
+            }
+
+            if (menuSel == 'G' || menuSel == 'g') // if user selects either uppercase or lowercase g
+            {
+                if (plyrTrn == true)
+                {
+                    if (grnCard > 0 && actCrd == 3) // logic to verify user input and return appropriate responses
+                    {
+                        grnCard--; // decrement card color count
+                        plyCnt--;  // decrement overall hand card count
+                        cout << "You play a green card!" << endl
+                             << endl;
+                        plyrTrn = false;
+                    }
+                    else if (actCrd != 3) // if the card selected from menu option does not equal card in play
+                    {
+                        cout << "The colors don't match!" << endl
+                             << endl;
+                    }
+                    else // else user does not own any of the cards selected for play
+                    {
+                        cout << "You don't have any GREEN cards!" << endl
+                             << endl;
+                    }
+                }
+            }
+
+            if (menuSel == 'D' || menuSel == 'd') // if user selects either uppercase or lowercase d
+            {
+                card = rand() % 4;                            // draw a random card value
+                card == 0 ? redCard++ : card == 1 ? bluCard++ // ternary operator to translate random card draw
+                                    : card == 2   ? yelCard++
+                                                  : grnCard++;
+                plyCnt++; // increment player hand count
+                cout << endl
+                     << endl;
+            }
         }
 
-    } while (plyCnt != 0 || npcCnt != 0);
+        // if it's not the player's turn AND if the player has not won yet
+        if (plyrTrn == false && plyCnt != 0)
+        {
+            // program displaying opponents turn and game status
+            cout << "It's the opponent's turn!" << endl
+                 << endl;
+            cout << "The opponent has " << npcCnt << " cards in their hand." << endl
+                 << endl;
+            cout << "The active card is " << actCol << "." << endl // call the active color string to display active color
+                 << endl;
+
+            // have npc check active card
+            if (actCrd == 0) // if active card is red
+            {
+                if (plyrTrn == false) // if it's still the opponent's turn
+                {
+                    if (npcRed > 0) // nested case if npc also has red cards
+                    {
+                        cout << "Opponent plays a red card!" << endl
+                             << endl;
+                        npcRed--;
+                        npcCnt--;
+                        plyrTrn = true; // npc has a red card and has played one
+                    }
+                    else // if it's red and npc does not have a red card
+                    {
+                        card = rand() % 4;                          // draw a random card value
+                        card == 0 ? npcRed++ : card == 1 ? npcBlu++ // ternary operator to translate random card draw
+                                           : card == 2   ? npcYel++
+                                                         : npcGrn++;
+                        npcCnt++; // increment opponent hand count
+                        cout << endl
+                             << endl;
+                    }
+                }
+            }
+
+            if (actCrd == 1) // if active card is blue
+            {
+                if (plyrTrn == false) // if it's still the opponent's turn
+                {
+                    if (npcBlu > 0) // nested case if npc also has blue cards
+                    {
+                        cout << "Opponent plays a blue card!" << endl
+                             << endl;
+                        npcBlu--;
+                        npcCnt--;
+                        plyrTrn = true; // npc has a blue card and has played one
+                    }
+                    else // if it's blue and npc does not have a blue card
+                    {
+                        card = rand() % 4;                          // draw a random card value
+                        card == 0 ? npcRed++ : card == 1 ? npcBlu++ // ternary operator to translate random card draw
+                                           : card == 2   ? npcYel++
+                                                         : npcGrn++;
+                        npcCnt++; // increment opponent hand count
+                        cout << endl
+                             << endl;
+                    }
+                }
+            }
+
+            if (actCrd == 2) // if active card is yellow
+            {
+                if (plyrTrn == false) // if it's still the opponent's turn
+                {
+                    if (npcYel > 0) // nested case if npc also has yellow cards
+                    {
+                        cout << "Opponent plays a yellow card!" << endl
+                             << endl;
+                        npcYel--;
+                        npcCnt--;
+                        plyrTrn = true; // npc has a yellow card and has played one
+                    }
+                    else // if it's yellow and npc does not have a yellow card
+                    {
+                        card = rand() % 4;                          // draw a random card value
+                        card == 0 ? npcRed++ : card == 1 ? npcBlu++ // ternary operator to translate random card draw
+                                           : card == 2   ? npcYel++
+                                                         : npcGrn++;
+                        npcCnt++; // increment opponent hand count
+                        cout << endl
+                             << endl;
+                    }
+                }
+            }
+
+            if (actCrd == 3) // if active card is green
+            {
+                if (plyrTrn == false) // if it's still the opponent's turn
+                {
+                    if (npcYel > 0) // nested case if npc also has green cards
+                    {
+                        cout << "Opponent plays a green card!" << endl
+                             << endl;
+                        npcGrn--;
+                        npcCnt--;
+                        plyrTrn = true; // npc has a green card and has played one
+                    }
+                    else // if it's green and npc does not have a green card
+                    {
+                        card = rand() % 4;                          // draw a random card value
+                        card == 0 ? npcRed++ : card == 1 ? npcBlu++ // ternary operator to translate random card draw
+                                           : card == 2   ? npcYel++
+                                                         : npcGrn++;
+                        npcCnt++; // increment opponent hand count
+                        cout << endl
+                             << endl;
+                    }
+                }
+            }
+        }
+    } while (plyCnt != 0 || npcCnt != 0); // while neither the player or opponent has won
 
     // Display and output the results
 
