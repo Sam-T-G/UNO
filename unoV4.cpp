@@ -63,12 +63,15 @@ int main(int argv, char **argc)
         npcRed,  // npc number of red cards
         npcBlu,  // npc number of blue cards
         npcYel,  // npc number of yellow cards
-        npcGrn;  // npc number of green cards
+        npcGrn,  // npc number of green cards
+        wildCrd, // player wild card
+        npcTmp,  // temp storage for npc logic
+        npcWld;  // npc wild card
 
     bool plyrTrn; // boolean that dictates if it's the player's turn
 
     // Initialize Variables
-    redCard = bluCard = yelCard = grnCard = npcRed = npcBlu = npcYel = npcGrn = plyCnt = npcCnt = 0; // mass initialization of base card value to 0
+    redCard = bluCard = yelCard = grnCard = npcRed = npcBlu = npcYel = npcGrn = plyCnt = npcCnt = wildCrd = npcWld = 0; // mass initialization of base card value to 0
     // CREATE MENU
     cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
     cout << "UNO! The game where friendships and loyalties go to die" << endl;
@@ -81,8 +84,7 @@ int main(int argv, char **argc)
     cout << "| Enter any Key to Start the Game |" << endl
          << endl;
     cin >> menuSel;
-    cout << endl
-         << endl;
+    cout << endl;
 
     // Map the inputs and outputs - Process
 
@@ -91,17 +93,18 @@ int main(int argv, char **argc)
     // PLAYER CARDS
     for (int i = 0; i < 7; i++) // first hand initialized to seven cards
     {
-        card = rand() % 4;                            // random 0-3 representing four colors - red blue yellow green
+        card = rand() % 5;                            // random 0-4 representing four colors - red blue yellow green and wild card
         card == 0 ? redCard++ : card == 1 ? bluCard++ // ternary operator to translate random card draw
                             : card == 2   ? yelCard++
-                                          : grnCard++;
+                            : card == 3   ? grnCard++
+                                          : wildCrd++;
         plyCnt++;
     }
 
     // NPC Cards
     for (int i = 0; i < 7; i++) // first hand initialized to seven cards
     {
-        card = rand() % 4; // random 0-3 representing four colors - red blue yellow green
+        card = rand() % 5; // random 0-5 representing four colors - red blue yellow green and wild card
         switch (card)      // this time we utilize a switch case to determine NPC draws
         {
         case 0:
@@ -116,50 +119,60 @@ int main(int argv, char **argc)
         case 3:
             npcGrn++;
             break;
+        case 4:
+            npcWld++;
+            break;
         }
         npcCnt++;
     }
 
     // generate an active card in play
-    actCrd = rand() % 4;
+    actCrd = rand() % 4; // generate one of four colors
+
+    // debug check for NPC HAND
+    // cout << "Red Cards: " << npcRed << " Blue Cards : " << npcBlu << " Yellow Cards: " << npcYel << " Green Cards: " << npcGrn << endl;
+
+    // if - else if statements to translate rng number into colors
+    if (actCrd == 0)
+    {
+        actCol = "Red";
+    }
+    else if (actCrd == 1)
+    {
+        actCol = "Blue";
+    }
+    else if (actCrd == 2)
+    {
+        actCol = "Yellow";
+    }
+    else if (actCrd == 3)
+    {
+        actCol = "Green";
+    }
+    cout << "First card in play: " << actCol << endl // first card activation
+         << endl;
 
     // set first turn to be on the player - can introduce randomized turns later using this boolean
     plyrTrn = true;
 
     do
-    { // debug check for NPC HAND
-        // cout << "Red Cards: " << npcRed << " Blue Cards : " << npcBlu << " Yellow Cards: " << npcYel << " Green Cards: " << npcGrn << endl;
-
-        // if - else if statements to translate rng number into colors
-        if (actCrd == 0)
-        {
-            actCol = "Red";
-        }
-        else if (actCrd == 1)
-        {
-            actCol = "Blue";
-        }
-        else if (actCrd == 2)
-        {
-            actCol = "Yellow";
-        }
-        else if (actCrd == 3)
-        {
-            actCol = "Green";
-        }
-        cout << "CARD IN PLAY: " << actCol; // display card in play
-
+    {
         // Check to see if it's the player's turn
         if (plyrTrn == true)
         { // player hand display
-            cout << endl
-                 << "| Red Cards: " << redCard << " | Blue Cards : " << bluCard << " | Yellow Cards: " << yelCard << " | Green Cards: "
-                 << grnCard << " | Total number of cards in hand: " << plyCnt << " | Opponent number of cards: " << npcCnt << " |" << endl
+            cout << "It's your turn!" << endl
                  << endl;
+            cout << "The active color is " << actCol;
+            cout
+                << endl
+                << "| Red Cards: " << redCard << " | Blue Cards : " << bluCard << " | Yellow Cards: " << yelCard << " | Green Cards: "
+                << grnCard << " | Wild Cards: " << wildCrd << " |" << endl
+                << "| Total number of cards in hand: " << plyCnt << " | Opponent number of cards: " << npcCnt << " |" << endl
+                << endl;
 
             // Prompt for how player wants to proceed
             cout << "What would you like to do?" << endl;
-            cout << "| R: Play Red | B: Play Blue | Y: Play Yellow | G: Play Green | D: Draw Card | " << endl;
+            cout << "| R: Play Red | B: Play Blue | Y: Play Yellow | G: Play Green | W: Play Wild | D: Draw Card | " << endl;
             cin >> menuSel;
             cout << endl;
 
@@ -263,14 +276,66 @@ int main(int argv, char **argc)
                 }
             }
 
+            if (menuSel == 'W' || menuSel == 'w') // if user selects either uppercase or lowercase w
+            {
+                if (plyrTrn == true)
+                {
+                    if (wildCrd > 0) // logic to verify user input and return appropriate responses
+                    {
+                        wildCrd--; // decrement wild card when used
+                        plyCnt--;  // decrement player card total when used
+
+                        cout << "You play a wild card! What color would you like to swap to?" << endl
+                             << endl;
+                        cout << "| R: Swap Red | B: Swap Blue | Y: Swap Yellow | G: Swap Green | " << endl
+                             << endl;
+                        cin >> menuSel;
+                        cout << endl;
+
+                        if (menuSel == 'R' || menuSel == 'r')
+                        {
+                            actCrd = 0;
+                            actCol = "Red";
+                        }
+                        if (menuSel == 'B' || menuSel == 'b')
+                        {
+                            actCrd = 1;
+                            actCol = "Blue";
+                        }
+                        if (menuSel == 'Y' || menuSel == 'y')
+                        {
+                            actCrd = 2;
+                            actCol = "Yellow";
+                        }
+                        if (menuSel == 'G' || menuSel == 'g')
+                        {
+                            actCrd = 3;
+                            actCol = "Green";
+                        }
+
+                        cout << "You have used your wild card to change the color to " << actCol << "!" << endl // display the new color
+                             << endl;
+
+                        // END TURN ONCE WILD HAS BEEN PLAYED
+                        plyrTrn = false;
+                    }
+                    else // else user does not own any of the cards selected for play
+                    {
+                        cout << "You don't have any WILD cards!" << endl
+                             << endl;
+                    }
+                }
+            }
+
             if (menuSel == 'D' || menuSel == 'd') // if user selects either uppercase or lowercase d
             {
-                card = rand() % 4;                            // draw a random card value
+                card = rand() % 5;                            // random 0-4 representing four colors - red blue yellow green and wild card
                 card == 0 ? redCard++ : card == 1 ? bluCard++ // ternary operator to translate random card draw
                                     : card == 2   ? yelCard++
-                                                  : grnCard++;
+                                    : card == 3   ? grnCard++
+                                                  : wildCrd++;
                 plyCnt++; // increment player hand count
-                cout << endl
+                cout << "You Draw a card!" << endl
                      << endl;
             }
         }
@@ -299,14 +364,48 @@ int main(int argv, char **argc)
                         npcCnt--;
                         plyrTrn = true; // npc has a red card and has played one
                     }
+                    else if (npcWld > 0) // logic to verify user input and return appropriate responses
+                    {
+                        npcWld--; // decrement wild card when used
+                        npcCnt--; // decrement player card total when used
+
+                        if (npcRed > npcBlu && npcRed > npcYel && npcRed > npcGrn) // if NPC has the most amount of red cards
+                        {
+                            actCrd = 0;
+                            actCol = "Red"; // npc will then opt to choose red
+                            plyrTrn = true; // end npc turn
+                        }
+                        if (npcBlu > npcRed && npcBlu > npcYel && npcBlu > npcGrn) // if NPC has the most amount of blue cards
+                        {
+                            actCrd = 1;
+                            actCol = "Blue"; // npc will then opt to choose blue
+                            plyrTrn = true;  // end npc turn
+                        }
+                        if (npcYel > npcRed && npcYel > npcBlu && npcYel > npcGrn) // if NPC has the most amount of red cards
+                        {
+                            actCrd = 2;
+                            actCol = "Yellow"; // npc will then opt to choose yellow
+                            plyrTrn = true;    // end npc turn
+                        }
+                        if (npcGrn > npcRed && npcGrn > npcBlu && npcGrn > npcYel) // if NPC has the most amount of red cards
+                        {
+                            actCrd = 3;
+                            actCol = "Green"; // npc will then opt to choose green
+                            plyrTrn = true;   // end npc turn
+                        }
+
+                        cout << "The opponent plays a Wild Card! The new color is " << actCol << "!" << endl
+                             << endl;
+                    }
                     else // if it's red and npc does not have a red card
                     {
-                        card = rand() % 4;                          // draw a random card value
+                        card = rand() % 5;                          // draw a random card value
                         card == 0 ? npcRed++ : card == 1 ? npcBlu++ // ternary operator to translate random card draw
                                            : card == 2   ? npcYel++
-                                                         : npcGrn++;
+                                           : card == 3   ? npcGrn++
+                                                         : npcWld++;
                         npcCnt++; // increment opponent hand count
-                        cout << endl
+                        cout << "Opponent Draws a card!" << endl
                              << endl;
                     }
                 }
@@ -324,14 +423,48 @@ int main(int argv, char **argc)
                         npcCnt--;
                         plyrTrn = true; // npc has a blue card and has played one
                     }
+                    else if (npcWld > 0) // logic to verify user input and return appropriate responses
+                    {
+                        npcWld--; // decrement wild card when used
+                        npcCnt--; // decrement player card total when used
+
+                        if (npcRed > npcBlu && npcRed > npcYel && npcRed > npcGrn) // if NPC has the most amount of red cards
+                        {
+                            actCrd = 0;
+                            actCol = "Red"; // npc will then opt to choose red
+                            plyrTrn = true; // end npc turn
+                        }
+                        if (npcBlu > npcRed && npcBlu > npcYel && npcBlu > npcGrn) // if NPC has the most amount of blue cards
+                        {
+                            actCrd = 1;
+                            actCol = "Blue"; // npc will then opt to choose blue
+                            plyrTrn = true;  // end npc turn
+                        }
+                        if (npcYel > npcRed && npcYel > npcBlu && npcYel > npcGrn) // if NPC has the most amount of red cards
+                        {
+                            actCrd = 2;
+                            actCol = "Yellow"; // npc will then opt to choose yellow
+                            plyrTrn = true;    // end npc turn
+                        }
+                        if (npcGrn > npcRed && npcGrn > npcBlu && npcGrn > npcYel) // if NPC has the most amount of red cards
+                        {
+                            actCrd = 3;
+                            actCol = "Green"; // npc will then opt to choose green
+                            plyrTrn = true;   // end npc turn
+                        }
+
+                        cout << "The opponent plays a Wild Card! The new color is " << actCol << "!" << endl
+                             << endl;
+                    }
                     else // if it's blue and npc does not have a blue card
                     {
-                        card = rand() % 4;                          // draw a random card value
+                        card = rand() % 5;                          // draw a random card value
                         card == 0 ? npcRed++ : card == 1 ? npcBlu++ // ternary operator to translate random card draw
                                            : card == 2   ? npcYel++
-                                                         : npcGrn++;
+                                           : card == 3   ? npcGrn++
+                                                         : npcWld++;
                         npcCnt++; // increment opponent hand count
-                        cout << endl
+                        cout << "Opponent Draws a card!" << endl
                              << endl;
                     }
                 }
@@ -349,14 +482,48 @@ int main(int argv, char **argc)
                         npcCnt--;
                         plyrTrn = true; // npc has a yellow card and has played one
                     }
+                    else if (npcWld > 0) // logic to verify user input and return appropriate responses
+                    {
+                        npcWld--; // decrement wild card when used
+                        npcCnt--; // decrement player card total when used
+
+                        if (npcRed > npcBlu && npcRed > npcYel && npcRed > npcGrn) // if NPC has the most amount of red cards
+                        {
+                            actCrd = 0;
+                            actCol = "Red"; // npc will then opt to choose red
+                            plyrTrn = true; // end npc turn
+                        }
+                        if (npcBlu > npcRed && npcBlu > npcYel && npcBlu > npcGrn) // if NPC has the most amount of blue cards
+                        {
+                            actCrd = 1;
+                            actCol = "Blue"; // npc will then opt to choose blue
+                            plyrTrn = true;  // end npc turn
+                        }
+                        if (npcYel > npcRed && npcYel > npcBlu && npcYel > npcGrn) // if NPC has the most amount of red cards
+                        {
+                            actCrd = 2;
+                            actCol = "Yellow"; // npc will then opt to choose yellow
+                            plyrTrn = true;    // end npc turn
+                        }
+                        if (npcGrn > npcRed && npcGrn > npcBlu && npcGrn > npcYel) // if NPC has the most amount of red cards
+                        {
+                            actCrd = 3;
+                            actCol = "Green"; // npc will then opt to choose green
+                            plyrTrn = true;   // end npc turn
+                        }
+
+                        cout << "The opponent plays a Wild Card! The new color is " << actCol << "!" << endl
+                             << endl;
+                    }
                     else // if it's yellow and npc does not have a yellow card
                     {
-                        card = rand() % 4;                          // draw a random card value
+                        card = rand() % 5;                          // draw a random card value
                         card == 0 ? npcRed++ : card == 1 ? npcBlu++ // ternary operator to translate random card draw
                                            : card == 2   ? npcYel++
-                                                         : npcGrn++;
+                                           : card == 3   ? npcGrn++
+                                                         : npcWld++;
                         npcCnt++; // increment opponent hand count
-                        cout << endl
+                        cout << "Opponent Draws a card!" << endl
                              << endl;
                     }
                 }
@@ -374,22 +541,66 @@ int main(int argv, char **argc)
                         npcCnt--;
                         plyrTrn = true; // npc has a green card and has played one
                     }
+                    else if (npcWld > 0) // logic to verify user input and return appropriate responses
+                    {
+                        npcWld--; // decrement wild card when used
+                        npcCnt--; // decrement player card total when used
+
+                        if (npcRed > npcBlu && npcRed > npcYel && npcRed > npcGrn) // if NPC has the most amount of red cards
+                        {
+                            actCrd = 0;
+                            actCol = "Red"; // npc will then opt to choose red
+                            plyrTrn = true; // end npc turn
+                        }
+                        if (npcBlu > npcRed && npcBlu > npcYel && npcBlu > npcGrn) // if NPC has the most amount of blue cards
+                        {
+                            actCrd = 1;
+                            actCol = "Blue"; // npc will then opt to choose blue
+                            plyrTrn = true;  // end npc turn
+                        }
+                        if (npcYel > npcRed && npcYel > npcBlu && npcYel > npcGrn) // if NPC has the most amount of red cards
+                        {
+                            actCrd = 2;
+                            actCol = "Yellow"; // npc will then opt to choose yellow
+                            plyrTrn = true;    // end npc turn
+                        }
+                        if (npcGrn > npcRed && npcGrn > npcBlu && npcGrn > npcYel) // if NPC has the most amount of red cards
+                        {
+                            actCrd = 3;
+                            actCol = "Green"; // npc will then opt to choose green
+                            plyrTrn = true;   // end npc turn
+                        }
+
+                        cout << "The opponent plays a Wild Card! The new color is " << actCol << "!" << endl
+                             << endl;
+                    }
                     else // if it's green and npc does not have a green card
                     {
-                        card = rand() % 4;                          // draw a random card value
+                        card = rand() % 5;                          // draw a random card value
                         card == 0 ? npcRed++ : card == 1 ? npcBlu++ // ternary operator to translate random card draw
                                            : card == 2   ? npcYel++
-                                                         : npcGrn++;
+                                           : card == 3   ? npcGrn++
+                                                         : npcWld++;
                         npcCnt++; // increment opponent hand count
-                        cout << endl
+                        cout << "Opponent Draws a card!" << endl
                              << endl;
                     }
                 }
             }
         }
-    } while (plyCnt != 0 || npcCnt != 0); // while neither the player or opponent has won
+    } while (plyCnt != 0 && npcCnt != 0); // while neither the player or opponent has won
 
     // Display and output the results
+    if (plyCnt == 0)
+    {
+        cout << "Congratulations, you've won!" << endl
+             << endl;
+    }
+    else if (npcCnt == 0)
+    {
+        cout << "You've Lost!" << endl
+             << endl;
+    }
 
     // Exit the program
     return 0;
