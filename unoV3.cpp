@@ -76,7 +76,7 @@ int main(int argv, char **argc)
          << endl;
     cout << "Type the character that corresponds to your selections within this game" << endl
          << endl;
-    cout << "| Press any Key to Start the Game |" << endl
+    cout << "| Enter any Key to Start the Game |" << endl
          << endl;
     cin >> menuSel;
     cout << endl
@@ -157,93 +157,93 @@ int main(int argv, char **argc)
         cin >> menuSel;
         cout << endl;
 
-        if (menuSel == 'R' || menuSel == 'r')
+        if (menuSel == 'R' || menuSel == 'r') // if user selects either uppercase or lowercase r
         {
-            if (redCard > 0 && actCrd == 0)
+            if (redCard > 0 && actCrd == 0) // logic to verify user input and return appropriate responses
             {
                 redCard--;
                 plyCnt--;
                 cout << "You play a red card!" << endl
                      << endl;
             }
-            else if (actCrd != 0)
+            else if (actCrd != 0) // if the card selected from menu option does not equal card in play
             {
                 cout << "The colors don't match!" << endl
                      << endl;
             }
-            else
+            else // else user does not own any of the cards selected for play
             {
                 cout << "You don't have any RED cards!" << endl
                      << endl;
             }
         }
-        if (menuSel == 'B' || menuSel == 'b')
+        if (menuSel == 'B' || menuSel == 'b') // if user selects either uppercase or lowercase b
         {
-            if (bluCard > 0 && actCrd == 1)
+            if (bluCard > 0 && actCrd == 1) // logic to verify user input and return appropriate responses
             {
                 bluCard--;
                 plyCnt--;
                 cout << "You play a blue card!" << endl
                      << endl;
             }
-            else if (actCrd != 1)
+            else if (actCrd != 1) // if the card selected from menu option does not equal card in play
             {
                 cout << "The colors don't match!" << endl
                      << endl;
             }
-            else
+            else // else user does not own any of the cards selected for play
             {
                 cout << "You don't have any BLUE cards!" << endl
                      << endl;
             }
         }
-        if (menuSel == 'Y' || menuSel == 'y')
+        if (menuSel == 'Y' || menuSel == 'y') // if user selects either uppercase or lowercase y
         {
-            if (yelCard > 0 && actCrd == 2)
+            if (yelCard > 0 && actCrd == 2) // logic to verify user input and return appropriate responses
             {
                 yelCard--;
                 plyCnt--;
                 cout << "You play a yellow card!" << endl
                      << endl;
             }
-            else if (actCrd != 2)
+            else if (actCrd != 2) // if the card selected from menu option does not equal card in play
             {
                 cout << "The colors don't match!" << endl
                      << endl;
             }
-            else
+            else // else user does not own any of the cards selected for play
             {
                 cout << "You don't have any YELLOW cards!" << endl
                      << endl;
             }
         }
-        if (menuSel == 'G' || menuSel == 'g')
+        if (menuSel == 'G' || menuSel == 'g') // if user selects either uppercase or lowercase g
         {
-            if (grnCard > 0 && actCrd == 3)
+            if (grnCard > 0 && actCrd == 3) // logic to verify user input and return appropriate responses
             {
-                grnCard--;
-                plyCnt--;
+                grnCard--; // decrement card color count
+                plyCnt--;  // decrement overall hand card count
                 cout << "You play a green card!" << endl
                      << endl;
             }
-            else if (actCrd != 3)
+            else if (actCrd != 3) // if the card selected from menu option does not equal card in play
             {
                 cout << "The colors don't match!" << endl
                      << endl;
             }
-            else
+            else // else user does not own any of the cards selected for play
             {
                 cout << "You don't have any GREEN cards!" << endl
                      << endl;
             }
         }
-        if (menuSel == 'D' || menuSel == 'd')
+        if (menuSel == 'D' || menuSel == 'd') // if user selects either uppercase or lowercase d
         {
-            card = rand() % 4;
+            card = rand() % 4;                            // draw a random card value
             card == 0 ? redCard++ : card == 1 ? bluCard++ // ternary operator to translate random card draw
                                 : card == 2   ? yelCard++
                                               : grnCard++;
-            plyCnt++;
+            plyCnt++; // increment player hand count
             cout << endl
                  << endl;
         }
