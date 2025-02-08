@@ -159,8 +159,7 @@ int main(int argv, char **argc)
 
             // Prompt for how player wants to proceed
             cout << "What would you like to do?" << endl;
-            cout << "| R: Play Red | B: Play Blue | Y: Play Yellow | G: Play Green | D: Draw Card | " << endl
-                 << endl;
+            cout << "| R: Play Red | B: Play Blue | Y: Play Yellow | G: Play Green | D: Draw Card | " << endl;
             cin >> menuSel;
             cout << endl;
 
@@ -367,7 +366,7 @@ int main(int argv, char **argc)
             {
                 if (plyrTrn == false) // if it's still the opponent's turn
                 {
-                    if (npcYel > 0) // nested case if npc also has green cards
+                    if (npcGrn > 0) // nested case if npc also has green cards
                     {
                         cout << "Opponent plays a green card!" << endl
                              << endl;
