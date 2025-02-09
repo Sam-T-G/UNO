@@ -26,13 +26,19 @@ Program needs to be able to reverse order of play (can be future implementation 
 
 // System Libraries
 #include <iostream> //io library
-#include <ctime>    //time library
+#include <iomanip>  //format library
+#include <cmath>    //math library
 #include <cstdlib>  //random library
+#include <cstring>  //string library
+#include <ctime>    //time library
+#include <deque>    //que library
+#include <fstream>  //file input output library
 using namespace std;
 
 // User Libraries
 
 // Global Constants
+const char PERCENT = 100; // percent conversion
 
 // Only use scientific values like pi, speed of light, etc
 
@@ -49,9 +55,18 @@ int main(int argv, char **argc)
         menuSel; // menu selection
 
     string
-        actCol; // active color
+        name,    // player name
+        btrWrse, // better or worse string
+        actCol;  // active color
+
+    fstream file("hiScore.dat", ios::in); // initialization of high scores storage
+    deque<int> scores;                    // Using deque to store scores instead of using arrays
+
+    const int maxScrs = 10; // Create an unedtiable ceiling of 10 scores
 
     unsigned int
+        sum,     // sum of last 10 scores
+        score,   // player score
         plyCnt,  // player card count
         npcCnt,  // npc card count
         actCrd,  // active card
@@ -68,6 +83,12 @@ int main(int argv, char **argc)
         npcTmp,  // temp storage for npc logic
         npcWld;  // npc wild card
 
+    float
+        pctChng, // percent change from average
+        varince, // statistical variance from mean
+        stdDev,  // standard deviation
+        average; // average score of last 10 runs
+
     bool plyrTrn; // boolean that dictates if it's the player's turn
 
     // Initialize Variables
@@ -81,9 +102,9 @@ int main(int argv, char **argc)
          << endl;
     cout << "Type the character that corresponds to your selections within this game" << endl
          << endl;
-    cout << "| Enter any Key to Start the Game |" << endl
+    cout << "| Enter your name to Start the Game |" << endl
          << endl;
-    cin >> menuSel;
+    cin >> name;
     cout << endl;
 
     // Map the inputs and outputs - Process
@@ -399,7 +420,7 @@ int main(int argv, char **argc)
                     }
                     else // if it's red and npc does not have a red card
                     {
-                        card = rand() % 5;                          // draw a random card value
+                        card = rand() % 4;                          // draw a random card value
                         card == 0 ? npcRed++ : card == 1 ? npcBlu++ // ternary operator to translate random card draw
                                            : card == 2   ? npcYel++
                                            : card == 3   ? npcGrn++
@@ -458,7 +479,7 @@ int main(int argv, char **argc)
                     }
                     else // if it's blue and npc does not have a blue card
                     {
-                        card = rand() % 5;                          // draw a random card value
+                        card = rand() % 4;                          // draw a random card value
                         card == 0 ? npcRed++ : card == 1 ? npcBlu++ // ternary operator to translate random card draw
                                            : card == 2   ? npcYel++
                                            : card == 3   ? npcGrn++
@@ -517,7 +538,7 @@ int main(int argv, char **argc)
                     }
                     else // if it's yellow and npc does not have a yellow card
                     {
-                        card = rand() % 5;                          // draw a random card value
+                        card = rand() % 4;                          // draw a random card value
                         card == 0 ? npcRed++ : card == 1 ? npcBlu++ // ternary operator to translate random card draw
                                            : card == 2   ? npcYel++
                                            : card == 3   ? npcGrn++
@@ -576,7 +597,7 @@ int main(int argv, char **argc)
                     }
                     else // if it's green and npc does not have a green card
                     {
-                        card = rand() % 5;                          // draw a random card value
+                        card = rand() % 4;                          // draw a random card value
                         card == 0 ? npcRed++ : card == 1 ? npcBlu++ // ternary operator to translate random card draw
                                            : card == 2   ? npcYel++
                                            : card == 3   ? npcGrn++
@@ -593,8 +614,82 @@ int main(int argv, char **argc)
     // Display and output the results
     if (plyCnt == 0)
     {
-        cout << "Congratulations, you've won!" << endl
+        while (file >> score) // read in scores stored in hiScores.dat
+        {
+            scores.push_back(score); // use push_back function from deque library
+        }
+        file.close(); // close file
+
+        cout << "Congratulations, you've won!" << endl // display player name if player wins the game.
              << endl;
+        score = npcCnt - plyCnt; // if player wins calculate score by finding the difference between the opponent card count and player card count
+        cout << "You've scored " << score << " points!" << endl;
+
+        scores.push_back(score); // add score to the que
+
+        if (scores.size() > maxScrs) // checks to see if the list of scores exceeds the constant limit of 10
+        {
+            scores.pop_front(); // removes the oldest score
+        }
+
+        file.open("hiScore.dat", ios::out); // clear file and write new scores
+
+        // write updated scores back to the file
+        for (int i = 0; i < scores.size(); i++) // loops for the length of size of scores
+        {
+            file << scores[i] << endl;
+        }
+
+        file.close();
+
+        // Calculate the average of the stored scores
+        sum = 0;                                // set the sum equal to 0
+        for (int i = 0; i < scores.size(); i++) // take each score in the deque
+        {
+            sum += scores[i]; // set sum equal to all of the scores in the deque
+        }
+        // Calculate the average
+        if (scores.size() == 1)
+        {
+            average = static_cast<float>(scores[0]); // If there is only one score, set average to that score
+        }
+        else
+        {
+            average = static_cast<float>(sum) / scores.size(); // Calculate average for more than one score
+        }
+
+        // initialize and calculate float variance
+        varince = 0;
+        for (int i = 0; i < scores.size(); i++)
+        {
+            varince += pow(scores[i] - average, 2); // squared difference from the mean
+        }
+        varince /= scores.size(); // average squared difference
+
+        // calculate the standard deviation
+        stdDev = sqrt(varince); // standard deviation is calculated from taking the square root of variance
+
+        // Display the Statistics
+        if (average < score)
+        {
+            btrWrse = "better";
+        }
+        else
+        {
+            btrWrse = "worse";
+        }
+
+        // Calculate the percent change from the average
+        pctChng = (score - average) / static_cast<float>(average) * PERCENT;
+        if (pctChng < 0)
+        {
+            pctChng *= -1; // if percent change is negative, change to positive
+        }
+
+        cout << "Which is " << pctChng << " % " << btrWrse << " than the average of the last ten victories." << endl
+             << endl;
+        cout << "Average of last " << scores.size() << " scores: " << average << endl;
+        cout << "Standard Deviation of the scores: " << stdDev << endl;
     }
     else if (npcCnt == 0)
     {
