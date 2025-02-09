@@ -21,7 +21,10 @@ FOUR DRAW FOUR and Color change wild cards
 //LOGIC CONSIDERATIONS
 Program needs to be able to reverse order of play (can be future implementation if base program only has one NPC)
 
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 */
 
 // System Libraries
@@ -633,13 +636,19 @@ int main(int argv, char **argc)
         }
 
         file.open("hiScore.dat", ios::out); // clear file and write new scores
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
         // write updated scores back to the file
         for (int i = 0; i < scores.size(); i++) // loops for the length of size of scores
         {
             file << scores[i] << endl;
         }
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
         file.close();
 
         // Calculate the average of the stored scores
@@ -669,8 +678,12 @@ int main(int argv, char **argc)
         // calculate the standard deviation
         stdDev = sqrt(varince); // standard deviation is calculated from taking the square root of variance
 
+<<<<<<< Updated upstream
         // Display the Statistics
         if (average < score)
+=======
+        if (average < score) // Logic to handle better or worse relay
+>>>>>>> Stashed changes
         {
             btrWrse = "better";
         }
@@ -686,7 +699,12 @@ int main(int argv, char **argc)
             pctChng *= -1; // if percent change is negative, change to positive
         }
 
+<<<<<<< Updated upstream
         cout << "Which is " << pctChng << " % " << btrWrse << " than the average of the last ten victories." << endl
+=======
+        cout << fixed << setprecision(6) << showpoint; // limit shown precision to six digits for simplicity and clarity
+        cout << "Which is " << pctChng << "% " << btrWrse << " than the average of the last ten victories." << endl
+>>>>>>> Stashed changes
              << endl;
         cout << "Average of last " << scores.size() << " scores: " << average << endl;
         cout << "Standard Deviation of the scores: " << stdDev << endl;
