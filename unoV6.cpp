@@ -45,18 +45,24 @@ const char PERCENT = 100; // percent conversion
 // Conversion between units
 
 // Function Protypes
-void draw(int[][COL], int);                                                                       // function to draw a card and place into hand
-void actvCrd(int[][COL], string &, int);                                                          // function to iterpret active card
-void deal(int[][COL], int[][COL], int[][COL], string &, char, int, int &, int &, int, bool &);    // initial deal at the start of a new game
-void crdCnv(int[][COL], int);                                                                     // card conversion to readable string
-void usrInt(int[][COL], int[][COL], int[][COL], string &, int &, int &, int, bool &);             // handle player turn
-void npcTrn(int[][COL], int[][COL], int[][COL], string &, int &, int &, int, bool &);             // handle npc turn
-void dispHnd(int[][COL], string &, int);                                                          // player hand display
-void plyrTrn(int[][COL], int[][COL], int[][COL], string &, char, int, int &, int &, int, bool &); // handle player menu plyrTrn
+void draw(int[][COL], int);                                                                                   // function to draw a card and place into hand
+void actvCrd(int[][COL], string &, int);                                                                      // function to iterpret active card
+void deal(int[][COL], int[][COL], int[][COL], string &, char, int, int &, int &, int, bool &);                // initial deal at the start of a new game
+void crdCnv(int[][COL], int);                                                                                 // card conversion to readable string
+void usrInt(int[][COL], int[][COL], int[][COL], int[][COL], string &, int &, int &, int, bool &);             // handle player turn
+void npcTrn(int[][COL], int[][COL], int[][COL], string &, int &, int &, int, bool &);                         // handle npc turn
+void dispHnd(int[][COL], int[][COL], string &, int);                                                          // player hand display
+void plyrTrn(int[][COL], int[][COL], int[][COL], int[][COL], string &, char, int, int &, int &, int, bool &); // handle player menu plyrTrn
 void wild(int[][COL], int, int &);
-void play(int[][COL], int[][COL], string &, int &, int, int, int, bool &);
+void play(int[][COL], int[][COL], int[][COL], string &, int &, int &, int, int, int, bool &);
 int getCol(char);
 void wldPlay(int[][COL], int[][COL], string &, int, int, int, bool &);
+void loadScr(vector<int> &scores, fstream &file);
+void saveScr(vector<int> &scores, fstream &file);
+void clcSts(vector<int> &scores, unsigned int score, float &average, float &variance, float &stdDev, float &pctChng, string &btrWrse);
+void dispRes(int plyCnt, int npcCnt, vector<int> &scores, fstream &file, unsigned int score, float average, float variance, float stdDev, float pctChng, string &btrWrse);
+void bubSrt(int plyrHnd[][COL], int ROW, string &, int srtdHnd[][COL]);
+void selSrt(int plyrHnd[][COL], int ROW, string &, int srtdHnd[][COL]);
 
 int main(int argv, char **argc)
 {
@@ -72,6 +78,7 @@ int main(int argv, char **argc)
         actvArr[ROW][COL], // active card 2D array
         plyrHnd[ROW][COL], // player hand table 2D Array
         npcHnd[ROW][COL],  // npc hand table 2D Array
+        srtdHnd[ROW][COL], // sorted hand 2D array
         plyrCnt = 0,       // player card count
         npcCnt = 0,        // npc card count
         colSel = 0;
@@ -82,7 +89,7 @@ int main(int argv, char **argc)
         actvDsp; // active card display
 
     fstream file("hiScore.dat", ios::in); // initialization of high scores storage
-    deque<int> scores;                    // Using deque to store scores instead of using arrays
+    vector<int> scores;
 
     const int maxScrs = 10; // Create an unedtiable ceiling of 10 scores
 
@@ -128,13 +135,21 @@ int main(int argv, char **argc)
     {
         if (turn == true)
         {
-            plyrTrn(plyrHnd, npcHnd, actvArr, actvDsp, colSel, numSel, plyrCnt, npcCnt, ROW, turn);
+            plyrTrn(plyrHnd, npcHnd, srtdHnd, actvArr, actvDsp, colSel, numSel, plyrCnt, npcCnt, ROW, turn);
         }
         if (turn == false && plyrCnt != 0)
         {
             npcTrn(plyrHnd, npcHnd, actvArr, actvDsp, plyrCnt, npcCnt, ROW, turn);
         }
-    } while (plyrCnt != 0 || npcCnt != 0);
+    } while (plyrCnt != 0 && npcCnt != 0);
+
+    // finsih prompt if one hand count reaches zero
+    if (plyrCnt == 0 || npcCnt == 0)
+    {
+        cout << "Game Over!" << endl
+             << endl;
+        dispRes(plyrCnt, npcCnt, scores, file, score, average, varince, stdDev, pctChng, btrWrse);
+    }
 
     // Exit the program
     return 0;
@@ -240,7 +255,7 @@ void deal(int plyrHnd[][COL], int npcHnd[][COL], int actvArr[][COL], string &act
     turn = true;
 }
 
-void usrInt(int plyrHnd[][COL], int npcHnd[][COL], int actvArr[][COL], string &actvDsp, int &plyrCnt, int &npcCnt, int ROW, bool &turn)
+void usrInt(int plyrHnd[][COL], int npcHnd[][COL], int srtdHnd[][COL], int actvArr[][COL], string &actvDsp, int &plyrCnt, int &npcCnt, int ROW, bool &turn)
 {
     cout << "It's your turn!" << endl
          << endl;
@@ -248,7 +263,7 @@ void usrInt(int plyrHnd[][COL], int npcHnd[][COL], int actvArr[][COL], string &a
     crdCnv(actvArr, ROW);
     cout << endl
          << endl;
-    dispHnd(plyrHnd, actvDsp, ROW);
+    bubSrt(plyrHnd, ROW, actvDsp, srtdHnd);
     cout << endl
          << "| Total number of cards in hand: " << plyrCnt << " | Opponent number of cards: " << npcCnt << " |" << endl
          << endl;
@@ -259,7 +274,7 @@ void usrInt(int plyrHnd[][COL], int npcHnd[][COL], int actvArr[][COL], string &a
     cout << "| 0-9: Card Number | 10: SKIP | 11: DRAW 2 | " << endl;
 }
 
-void dispHnd(int plyrHnd[][COL], string &actvDsp, int ROW)
+void dispHnd(int plyrHnd[][COL], int srtdHnd[][COL], string &actvDsp, int ROW)
 {
     // Create an array of strings for the card colors
     string colors[] = {"Red", "Blue", "Yellow", "Green", "Wild"};
@@ -289,6 +304,15 @@ void dispHnd(int plyrHnd[][COL], string &actvDsp, int ROW)
 
         for (int j = 0; j < COL; j++)
         {
+            // if (srtdHnd[i][j] != 0) // If there are cards in this slot
+            // {
+            //     cout << setw(7) << values[i] << "(" << srtdHnd[i][j] << ")|"; // Print the value and how many of that card exist
+            // }
+            // else
+            // {
+            //     cout << setw(10) << " " << "|"; // No card in this slot, leave it blank
+            // }
+
             if (plyrHnd[i][j] != 0) // If there are cards in this slot
             {
                 cout << setw(7) << values[i] << "(" << plyrHnd[i][j] << ")|"; // Print the value and how many of that card exist
@@ -307,13 +331,105 @@ void dispHnd(int plyrHnd[][COL], string &actvDsp, int ROW)
     cout << endl;
 }
 
-void plyrTrn(int plyrHnd[][COL], int npcHnd[][COL], int actvArr[][COL], string &actvDsp, char colSel, int numSel, int &plyrCnt, int &npcCnt, int ROW, bool &turn)
+// Bubble Sort Function (returns sorted array in srtdHnd)
+void bubSrt(int plyrHnd[][COL], int ROW, string &actvDsp, int srtdHnd[][COL])
+{
+    // Initialize srtdHnd with zeroes
+    for (int i = 0; i < ROW; i++)
+    {
+        for (int j = 0; j < COL; j++)
+        {
+            srtdHnd[i][j] = 0;
+        }
+    }
+
+    for (int j = 0; j < COL; j++)
+    {
+        vector<int> colVal; // Store nonzero values for sorting
+
+        // Collect nonzero values from the column
+        for (int i = 0; i < ROW; i++)
+        {
+            if (plyrHnd[i][j] != 0)
+                colVal.push_back(plyrHnd[i][j]);
+        }
+
+        // Bubble Sort
+        for (size_t x = 0; x < colVal.size(); x++)
+        {
+            for (size_t y = 0; y < colVal.size() - x - 1; y++)
+            {
+                if (colVal[y] > colVal[y + 1])
+                    swap(colVal[y], colVal[y + 1]);
+            }
+        }
+
+        // Populate srtdHnd top-down
+        for (size_t i = 0; i < colVal.size(); i++)
+        {
+            srtdHnd[i][j] = colVal[i];
+        }
+    }
+
+    // Print the sorted hand
+    // cout << "Bubble Sort Hand:" << endl;
+    dispHnd(plyrHnd, srtdHnd, actvDsp, ROW);
+}
+
+// Selection Sort Function (returns sorted array in srtdHnd)
+void selSrt(int plyrHnd[][COL], int ROW, string &actvDsp, int srtdHnd[][COL])
+{
+    // Initialize srtdHnd with zeroes
+    for (int i = 0; i < ROW; i++)
+    {
+        for (int j = 0; j < COL; j++)
+        {
+            srtdHnd[i][j] = 0;
+        }
+    }
+
+    for (int j = 0; j < COL; j++)
+    {
+        vector<int> colVal; // Store nonzero values for sorting
+
+        // Collect nonzero values from the column
+        for (int i = 0; i < ROW; i++)
+        {
+            if (plyrHnd[i][j] != 0)
+                colVal.push_back(plyrHnd[i][j]);
+        }
+
+        // Selection Sort
+        for (size_t x = 0; x < colVal.size(); x++)
+        {
+            size_t minIndex = x;
+            for (size_t y = x + 1; y < colVal.size(); y++)
+            {
+                if (colVal[y] < colVal[minIndex])
+                    minIndex = y;
+            }
+            swap(colVal[x], colVal[minIndex]);
+        }
+
+        // Populate srtdHnd top-down
+        for (size_t i = 0; i < colVal.size(); i++)
+        {
+            srtdHnd[i][j] = colVal[i];
+        }
+    }
+
+    // Print the sorted hand
+    cout << "Selection Sort Hand:" << endl;
+    dispHnd(plyrHnd, srtdHnd, actvDsp, ROW);
+}
+
+void plyrTrn(int plyrHnd[][COL], int npcHnd[][COL], int srtdHnd[][COL], int actvArr[][COL], string &actvDsp, char colSel, int numSel, int &plyrCnt, int &npcCnt, int ROW, bool &turn)
 {
     bool vldPly = false;
 
     while (!vldPly) // Loop until a valid play is made
     {
-        usrInt(plyrHnd, npcHnd, actvArr, actvDsp, plyrCnt, npcCnt, ROW, turn);
+        usrInt(plyrHnd, npcHnd, srtdHnd, actvArr, actvDsp, plyrCnt, npcCnt, ROW, turn);
         cout << "Choose a card color!" << endl;
         cin >> colSel;
         if (cin.fail())
@@ -346,7 +462,8 @@ void plyrTrn(int plyrHnd[][COL], int npcHnd[][COL], int actvArr[][COL], string &
             int colIdx = getCol(colSel); // create a colindex int variable to retrieve if color selected is viable
             while (colIdx == -1)         // if not viable
             {
-                dispHnd(plyrHnd, actvDsp, ROW);                    // display hand UI
+                bubSrt(plyrHnd, ROW, actvDsp, srtdHnd);            // bubble sort display
+                selSrt(plyrHnd, ROW, actvDsp, srtdHnd);            // selection Srt display
                 cout << "Invalid color selection! Choose again: "; // prompt user selection is invalid
                 cin >> colSel;                                     // input a new color selection
                 colIdx = getCol(colSel);                           // re-index and check loop again
@@ -375,7 +492,7 @@ void plyrTrn(int plyrHnd[][COL], int npcHnd[][COL], int actvArr[][COL], string &
                 {
                     if (plyrHnd[numSel][colIdx] > 0)
                     {
-                        play(plyrHnd, actvArr, actvDsp, plyrCnt, colIdx, numSel, ROW, turn);
+                        play(plyrHnd, npcHnd, actvArr, actvDsp, plyrCnt, npcCnt, colIdx, numSel, ROW, turn);
                         vldPly = true; // Exit loop after a successful play
                         cout << "The active card is now ";
                         crdCnv(actvArr, ROW);
@@ -442,7 +559,7 @@ void crdCnv(int array[][COL], int ROW)
     }
 }
 
-void play(int plyrHnd[][COL], int actvArr[][COL], string &actvDsp, int &plyrCnt, int colIdx, int numSel, int ROW, bool &turn)
+void play(int plyrHnd[][COL], int npcHnd[][COL], int actvArr[][COL], string &actvDsp, int &plyrCnt, int &npcCnt, int colIdx, int numSel, int ROW, bool &turn)
 {
     int color = 0, number = 0;
 
@@ -479,6 +596,22 @@ void play(int plyrHnd[][COL], int actvArr[][COL], string &actvDsp, int &plyrCnt,
             cout << "You've played a " << actvDsp << endl;
             turn = false; // Switch to NPC turn
             plyrCnt--;
+            if (numSel == 10)
+            {
+                turn = true; // override the turn to have a second turn if played a skip
+                cout << "It's your turn again!" << endl
+                     << endl;
+            }
+            if (numSel == 11)
+            {
+                turn = true; // override turn as well if played a DRAW 2
+                cout << "The opponent has to Draw Two Cards!" << endl
+                     << endl;
+                draw(npcHnd, ROW);
+                draw(npcHnd, ROW);
+                npcCnt++;
+                npcCnt++;
+            }
         }
         else
         {
@@ -583,9 +716,10 @@ void wild(int actvArr[][COL], int ROW, int &j)
     cout << "Wild card has been played! The new color is " << newCol << "!" << endl;
 }
 
+// npc AI logic
 void npcTrn(int plyrHnd[][COL], int npcHnd[][COL], int actvArr[][COL], string &actvDsp, int &plyrCnt, int &npcCnt, int ROW, bool &turn)
 {
-    int color = 0, number = 0;
+    int color = 0, number = 0; // initialize color and number to 0
 
     // Find the currently active card
     for (int i = 0; i < ROW; i++) // Iterate over columns (card numbers)
@@ -599,6 +733,27 @@ void npcTrn(int plyrHnd[][COL], int npcHnd[][COL], int actvArr[][COL], string &a
             }
         }
     }
+    // int binarySearch(int arr[], int low, int high, int x)
+    // {
+    // while (low <= high) {
+    //     int mid = low + (high - low) / 2;
+
+    //     // Check if x is present at mid
+    //     if (arr[mid] == x)
+    //         return mid;
+
+    //     // If x greater, ignore left half
+    //     if (arr[mid] < x)
+    //         low = mid + 1;
+
+    //     // If x is smaller, ignore right half
+    //     else
+    //         high = mid - 1;
+    // }
+
+    // If we reach here, then element was not present
+    // return -1;
+    // }
     // Search the NPC hand to see if there are any values at either coordinate of the NPC hand.
     bool found = false; // create a boolean to initialize a search for the next possible card
     while (!found)
@@ -621,7 +776,7 @@ void npcTrn(int plyrHnd[][COL], int npcHnd[][COL], int actvArr[][COL], string &a
                     npcHnd[i][j]--;    // decrement npc card from hand
 
                     cout << "The opponent has played a ";
-                    crdCnv(actvArr, ROW);
+                    crdCnv(actvArr, ROW); // convert card into readable value for UI
                     cout << "!" << endl;
 
                     npcCnt--; // reduce total npc hand count
@@ -629,6 +784,19 @@ void npcTrn(int plyrHnd[][COL], int npcHnd[][COL], int actvArr[][COL], string &a
                     cout << "The opponent now has " << npcCnt << " cards in their hand!" << endl;
                     found = true; // set found to true so we can break out of loops
                     turn = true;
+
+                    color = j;
+                    number = i;
+                    if (color == 4)
+                    {
+                        for (int i = 0; i < ROW; i++)
+                            for (int j = 0; j < COL; j++)
+                            {
+                                actvArr[i][j] = 0; // set every value to zero to reset active card
+                            }
+                        j = rand() % 3;
+                        actvArr[i][j] = 1;
+                    }
                 }
                 j++; // increment when still not found
             }
@@ -638,10 +806,149 @@ void npcTrn(int plyrHnd[][COL], int npcHnd[][COL], int actvArr[][COL], string &a
         // while STILL not found any matches, prompt the enemy to draw cards
         if (!found)
         {
-            draw(npcHnd, ROW);
-            npcCnt++;
+            draw(npcHnd, ROW); // draw a card if no values found
+            npcCnt++;          // increment npc hand count
             cout << "The opponent draws a card!" << endl
                  << endl;
         }
+    }
+}
+
+// Function to load scores from file
+void loadScr(vector<int> &scores, fstream &file)
+{
+    int score;
+    while (file >> score)
+    {
+        scores.push_back(score);
+    }
+    file.close();
+}
+
+// Function to save updated scores to file
+void saveScr(vector<int> &scores, fstream &file)
+{
+    file.open("hiScore.dat", ios::out);
+    for (int i = 0; i < scores.size(); i++)
+    {
+        file << scores[i] << endl;
+    }
+    file.close();
+}
+
+// Function to calculate the stats (average, variance, stdDev, pctChng)
+void clcSts(vector<int> &scores, unsigned int score, float &average, float &variance, float &stdDev, float &pctChng, string &btrWrse)
+{
+    unsigned int sum = 0;
+
+    for (int i = 0; i < scores.size(); i++)
+    {
+        sum += scores[i];
+    }
+
+    // Calculate average
+    if (scores.size() == 1)
+    {
+        average = static_cast<float>(scores[0]);
+    }
+    else
+    {
+        average = static_cast<float>(sum) / scores.size();
+    }
+
+    // Calculate variance
+    variance = 0;
+    for (int i = 0; i < scores.size(); i++)
+    {
+        variance += pow(scores[i] - average, 2);
+    }
+    variance /= scores.size();
+
+    // Calculate standard deviation
+    stdDev = sqrt(variance);
+
+    // Check if the score is better or worse
+    if (average < score)
+    {
+        btrWrse = "better";
+    }
+    else
+    {
+        btrWrse = "worse";
+    }
+
+    // Calculate percent change
+    pctChng = (score - average) / static_cast<float>(average) * PERCENT;
+    if (pctChng < 0)
+    {
+        pctChng *= -1;
+    }
+}
+
+// Function to display results
+// Original function
+void dispRes(int plyCnt, int npcCnt, vector<int> &scores, fstream &file, unsigned int score,
+             float average, float variance, float stdDev, float pctChng, string &btrWrse)
+{
+    if (!file)
+    {
+        cout << "Error: High score file not found!" << endl;
+        exit(1);
+    }
+
+    if (plyCnt == 0)
+    {
+        loadScr(scores, file); // call load scores file
+
+        cout << "Congratulations, you've won!" << endl
+             << endl;
+        score = npcCnt - plyCnt;
+        cout << "You've scored " << score << " points!" << endl;
+
+        scores.push_back(score);
+
+        if (scores.size() > 10)
+        {
+            scores.erase(scores.begin()); // Remove the oldest score (front of the vector)
+        }
+
+        saveScr(scores, file);
+
+        clcSts(scores, score, average, variance, stdDev, pctChng, btrWrse);
+
+        cout << fixed << setprecision(2) << showpoint;
+        cout << "Which is " << pctChng << "% " << btrWrse << " than the average of the last ten victories." << endl
+             << endl;
+        cout << "Average of last " << scores.size() << " scores: " << average << endl;
+        cout << "Standard Deviation of the scores: " << stdDev << endl;
+    }
+    else if (npcCnt == 0)
+    {
+        cout << "You've Lost!" << endl
+             << endl;
+    }
+}
+
+// Overloaded version without file and statistical details
+void dispRes(int plyCnt, int npcCnt, vector<int> &scores, unsigned int score)
+{
+    if (plyCnt == 0)
+    {
+        cout << "Congratulations, you've won!" << endl
+             << endl;
+        score = npcCnt - plyCnt;
+        cout << "You've scored " << score << " points!" << endl;
+
+        scores.push_back(score);
+
+        if (scores.size() > 10)
+        {
+            scores.erase(scores.begin()); // Remove the oldest score (front of the vector)
+        }
+    }
+    else if (npcCnt == 0)
+    {
+        cout << "You've Lost!" << endl
+             << endl;
     }
 }
