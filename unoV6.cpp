@@ -37,7 +37,7 @@ using namespace std;
 // User Libraries
 
 // Global Constants
-const int MAXCARDS = 100; // most amount of cards a player can have in their hand
+const int COL = 5;        // column value to set up 2D array
 const char PERCENT = 100; // percent conversion
 
 // Only use scientific values like pi, speed of light, etc
@@ -45,10 +45,18 @@ const char PERCENT = 100; // percent conversion
 // Conversion between units
 
 // Function Protypes
-void draw(int[][MAXCARDS]);    // function to draw a card and place into hand
-void addHand(int[][MAXCARDS]); // add given card draw to a hand
-void actvCrd();                // function to handle active card logic
-void menuSel();                // handles menu selection
+void draw(int[][COL], int);                                                                       // function to draw a card and place into hand
+void actvCrd(int[][COL], string &, int);                                                          // function to iterpret active card
+void deal(int[][COL], int[][COL], int[][COL], string &, char, int, int &, int &, int, bool &);    // initial deal at the start of a new game
+void crdCnv(int[][COL], int);                                                                     // card conversion to readable string
+void usrInt(int[][COL], int[][COL], int[][COL], string &, int &, int &, int, bool &);             // handle player turn
+void npcTrn(int[][COL], int[][COL], int[][COL], string &, int &, int &, int, bool &);             // handle npc turn
+void dispHnd(int[][COL], string &, int);                                                          // player hand display
+void plyrTrn(int[][COL], int[][COL], int[][COL], string &, char, int, int &, int &, int, bool &); // handle player menu plyrTrn
+void wild(int[][COL], int, int &);
+void play(int[][COL], int[][COL], string &, int &, int, int, int, bool &);
+int getCol(char);
+void wldPlay(int[][COL], int[][COL], string &, int, int, int, bool &);
 
 int main(int argv, char **argc)
 {
@@ -56,17 +64,22 @@ int main(int argv, char **argc)
     srand(static_cast<unsigned int>(time(0)));
 
     // Declare Variables
-    const int ROW = 100; // max number of rows = 100
+    const int ROW = 12; // variation of colors to set up 2D array
     char
-        menuSel; // menu selection
+        menuSel, // menu selection
+        numSel;
     int
-        plyrHnd[ROW][MAXCARDS], // player hand table 2D Array
-        npcHnd[ROW][MAXCARDS];  // npc hand table 2D Array
+        actvArr[ROW][COL], // active card 2D array
+        plyrHnd[ROW][COL], // player hand table 2D Array
+        npcHnd[ROW][COL],  // npc hand table 2D Array
+        plyrCnt = 0,       // player card count
+        npcCnt = 0,        // npc card count
+        colSel = 0;
 
     string
         name,    // player name
         btrWrse, // better or worse string
-        actCol;  // active color
+        actvDsp; // active card display
 
     fstream file("hiScore.dat", ios::in); // initialization of high scores storage
     deque<int> scores;                    // Using deque to store scores instead of using arrays
@@ -76,9 +89,6 @@ int main(int argv, char **argc)
     unsigned int
         sum,     // sum of last 10 scores
         score,   // player score
-        plyCnt,  // player card count
-        npcCnt,  // npc card count
-        actCrd,  // active card
         card,    // card placeholder
         wildCrd, // player wild card
         npcTmp,  // temp storage for npc logic
@@ -90,7 +100,7 @@ int main(int argv, char **argc)
         stdDev,  // standard deviation
         average; // average score of last 10 runs
 
-    bool plyrTrn; // boolean that dictates if it's the player's turn
+    bool turn; // boolean that dictates if it's the player's turn
 
     // Initialize Variables
     // CREATE MENU
@@ -107,52 +117,531 @@ int main(int argv, char **argc)
     cin >> name;
     cout << endl;
 
-    draw(plyrHnd);
+    deal(plyrHnd, npcHnd, actvArr, actvDsp, colSel, numSel, plyrCnt, npcCnt, ROW, turn); // deal the initial card arrays
 
     // Map the inputs and outputs - Process
 
     // INITIAL DRAW of 5 CARDS
 
-    // PLAYER CARDS
+    // TURN HADNLING
+    do
+    {
+        if (turn == true)
+        {
+            plyrTrn(plyrHnd, npcHnd, actvArr, actvDsp, colSel, numSel, plyrCnt, npcCnt, ROW, turn);
+        }
+        if (turn == false && plyrCnt != 0)
+        {
+            npcTrn(plyrHnd, npcHnd, actvArr, actvDsp, plyrCnt, npcCnt, ROW, turn);
+        }
+    } while (plyrCnt != 0 || npcCnt != 0);
 
     // Exit the program
     return 0;
 }
 
 // draw function - pass in copy of pyrTrn, pass by reference hand count of player and npc
-void draw(int drwHnd[][MAXCARDS])
+void draw(int drwHnd[][COL], int ROW)
 {
-    int drwVal;              // initialize a value of card - i index
-    int drwCol = rand() % 5; // randomize a color drawn - j index
+    int drwCol = 0;        // initialize a color of card - i index
+    int drwVal = 0;        // initialize a value of card - j index
+    drwCol = rand() % COL; // randomize a color drawn - j index
     if (drwCol == 4)
     {
         drwVal = rand() % 3; // if wild card, choose from only three options - standard, draw two, draw four
     }
     else
     {
-        drwVal = rand() % 12; // if not wild card, choose from 11 options
+        drwVal = rand() % ROW; // if not wild card, choose from 11 options
     }
 
     drwHnd[drwVal][drwCol]++; // increment the value found at given coordinate
 
     // VISUAL MATRIX DEBUG
-    for (int i = 0; i < 11; i++) // loop i for max length of card values = 11
+    // for (int i = 0; i < ROW; i++) // loop i for max length of  = 5
+    // {
+    //     for (int j = 0; j < COL; j++) // loop j for max height of color types = 12
+    //     {
+    //         cout << drwHnd[i][j]; // display value at given matrix coordinate
+    //     }
+    //     cout << endl; // move to next line when row is filled
+    // }
+    // cout << "Drawn Card: " << (drwCol == 4 ? "Wild" : to_string(drwCol)) << " of " << drwVal << endl;
+    cout << endl;
+}
+void deal(int plyrHnd[][COL], int npcHnd[][COL], int actvArr[][COL], string &actvDsp, char colSel, int numSel, int &plyrCnt, int &npcCnt, int ROW, bool &turn)
+{
+    int nCrdSt = 7; // create a modifiable variable to dictate the number of cards we want to start with
+    // Initialize both hands before dealing the cards to clear random memory
+    for (int i = 0; i < ROW; i++)
     {
-        for (int j = 0; j < 5; j++) // loop j for max height of color types = 5
+        for (int j = 0; j < COL; j++)
         {
-            cout << drwHnd[i][j]; // display value at given matrix coordinate
+            plyrHnd[i][j] = 0; // Initialize player's hand
+            npcHnd[i][j] = 0;  // Initialize NPC's hand
         }
-        cout << endl; // move to next line when row is filled
+        cout << endl
+             << "Initialized both hands." << endl
+             << endl;
+    }
+    for (int i = 0; i < nCrdSt; i++) // loop until we deal amount of cards desired
+    {
+        draw(plyrHnd, ROW); // deal a card for player
+        plyrCnt++;
+        cout << endl
+             << "Player hand" << endl
+             << plyrCnt << endl
+             << endl;
+        draw(npcHnd, ROW); // deal a card for npc
+        npcCnt++;
+        cout << endl
+             << "Opponent hand" << endl
+             << npcCnt << endl
+             << endl;
+    }
+    cout << endl
+         << "both hands have been dealt" << endl
+         << endl;
+
+    bool wldFrst = false; // initialize a boolean to signify if the first active card is a wild
+    do
+    {
+        wldFrst = false; // initialize a boolean to signify if the first active card is a wild
+        // reset active card value
+        for (int i = 0; i < ROW; i++)
+        {
+            for (int j = 0; j < COL; j++)
+            {
+                actvArr[i][j] = 0;
+                // cout << endl
+                //      << actvArr[i][j] << endl // debug line
+                //      << endl;
+            }
+        }
+        draw(actvArr, ROW); // draw a card and set it to the active card
+        // check to see if the active card is a wild card
+        for (int i = 0; i < ROW; i++)
+        {
+            if (actvArr[i][4] != 0)
+            { // Only check the wild row
+                cout << endl
+                     << "First draw was a wild card! Redrawing..." << endl
+                     << endl;
+                wldFrst = true;
+            }
+        }
+    } while (wldFrst == true);
+
+    // call active card function to interpret the active card
+    actvCrd(actvArr, actvDsp, ROW);
+
+    cout << "You and the opponent have recieved your starting hands." << endl
+         << "The first active card is " << actvDsp << endl;
+    turn = true;
+}
+
+void usrInt(int plyrHnd[][COL], int npcHnd[][COL], int actvArr[][COL], string &actvDsp, int &plyrCnt, int &npcCnt, int ROW, bool &turn)
+{
+    cout << "It's your turn!" << endl
+         << endl;
+    cout << "The active card is ";
+    crdCnv(actvArr, ROW);
+    cout << endl
+         << endl;
+    dispHnd(plyrHnd, actvDsp, ROW);
+    cout << endl
+         << "| Total number of cards in hand: " << plyrCnt << " | Opponent number of cards: " << npcCnt << " |" << endl
+         << endl;
+
+    // Prompt for how player wants to proceed
+    cout << "What would you like to do?" << endl;
+    cout << "| R: Play Red | B: Play Blue | Y: Play Yellow | G: Play Green | W: Play Wild | D: Draw Card | " << endl;
+    cout << "| 0-9: Card Number | 10: SKIP | 11: DRAW 2 | " << endl;
+}
+
+void dispHnd(int plyrHnd[][COL], string &actvDsp, int ROW)
+{
+    // Create an array of strings for the card colors
+    string colors[] = {"Red", "Blue", "Yellow", "Green", "Wild"};
+    // Create an array of strings for the card values
+    string values[] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "SKIP", "DRAW 2"};
+
+    for (int i = 0; i < 56; i++)
+    {
+        cout << "-";
+    }
+    cout << endl
+         << fixed << "|";
+    for (int j = 0; j < COL; j++)
+    {
+        cout << setw(10) << colors[j] << "|"; // Print color columns
+    }
+    cout << endl;
+    for (int i = 0; i < 56; i++)
+    {
+        cout << "-";
+    }
+    cout << endl;
+
+    for (int i = 0; i < ROW; i++)
+    {
+        cout << "|"; // Start a new row
+
+        for (int j = 0; j < COL; j++)
+        {
+            if (plyrHnd[i][j] != 0) // If there are cards in this slot
+            {
+                cout << setw(7) << values[i] << "(" << plyrHnd[i][j] << ")|"; // Print the value and how many of that card exist
+            }
+            else
+            {
+                cout << setw(10) << " " << "|"; // No card in this slot, leave it blank
+            }
+        }
+        cout << endl; // New line after each row of cards
+    }
+    for (int i = 0; i < 56; i++)
+    {
+        cout << "-";
+    }
+    cout << endl;
+}
+
+void plyrTrn(int plyrHnd[][COL], int npcHnd[][COL], int actvArr[][COL], string &actvDsp, char colSel, int numSel, int &plyrCnt, int &npcCnt, int ROW, bool &turn)
+{
+    bool vldPly = false;
+
+    while (!vldPly) // Loop until a valid play is made
+    {
+        usrInt(plyrHnd, npcHnd, actvArr, actvDsp, plyrCnt, npcCnt, ROW, turn);
+        cout << "Choose a card color!" << endl;
+        cin >> colSel;
+        if (cin.fail())
+        {
+            cin.clear();
+            cin.ignore(1000, '\n');
+            cout << "Invalid input! Try again.\n";
+            continue;
+        }
+        cout << "Choose a Value" << endl;
+        cin >> numSel;
+        if (cin.fail())
+        {
+            cin.clear();
+            cin.ignore(1000, '\n');
+            cout << "Invalid input! Try again.\n";
+            continue;
+        }
+        // Handle drawing a card
+        if (colSel == 'D' || colSel == 'd')
+        {
+            cout << "You've drawn a card!" << endl;
+            draw(plyrHnd, ROW); // draw randomized card value
+            plyrCnt++;          // increment player hand count
+            colSel = 0;         // empty value
+            numSel = 0;         // empty value
+        }
+        else
+        {
+            int colIdx = getCol(colSel); // create a colindex int variable to retrieve if color selected is viable
+            while (colIdx == -1)         // if not viable
+            {
+                dispHnd(plyrHnd, actvDsp, ROW);                    // display hand UI
+                cout << "Invalid color selection! Choose again: "; // prompt user selection is invalid
+                cin >> colSel;                                     // input a new color selection
+                colIdx = getCol(colSel);                           // re-index and check loop again
+            }
+
+            // Handle wild card logic
+            if (colSel == 'W' || colSel == 'w')
+            {
+                if (plyrHnd[numSel][colIdx] > 0)
+                {
+                    wldPlay(plyrHnd, actvArr, actvDsp, colIdx, numSel, ROW, turn);
+                    plyrCnt--;                 // decrement hand count
+                    plyrHnd[numSel][colIdx]--; // Remove the wild card from player's hand
+                    vldPly = true;             // confirm as valud play and continue
+                }
+                else
+                {
+                    cout << "You don't have any Wild cards!";
+                }
+            }
+
+            // Regular card play logic
+            if (turn)
+            {
+                if (numSel >= 0 && numSel <= 11) // Check if number is within range
+                {
+                    if (plyrHnd[numSel][colIdx] > 0)
+                    {
+                        play(plyrHnd, actvArr, actvDsp, plyrCnt, colIdx, numSel, ROW, turn);
+                        vldPly = true; // Exit loop after a successful play
+                        cout << "The active card is now ";
+                        crdCnv(actvArr, ROW);
+                        cout << endl
+                             << endl;
+                    }
+                    else
+                    {
+                        cout << "You don't have that card! Choose again: ";
+                        cin >> colSel >> numSel; // Re-prompt
+                    }
+                }
+                else
+                {
+                    cout << "Invalid card number! Choose again: ";
+                    cin >> colSel >> numSel; // Re-prompt
+                }
+            }
+        }
     }
 }
 
-void addHand()
+void actvCrd(int actvArr[][COL], string &actvDsp, int ROW)
 {
+    // create string array to describe the columns - displaying card colors
+    string colors[] = {"Red", "Blue", "Yellow", "Green", "Wild"};
+    // create string array to describe the row values
+    string values[] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "SKIP", "DRAW 2"};
+    actvDsp = ""; // clear the active display
+    // determine active card
+    for (int i = 0; i < ROW; i++)     // Iterate through Card Types
+        for (int j = 0; j < COL; j++) // iterate through card colors
+        {
+            if (actvArr[i][j] != 0) // If this slot has a card
+            {
+                // Handle wild cards separately
+                if (j == 4)
+                    actvDsp = "Wild";
+
+                else
+                    actvDsp = values[i] + " " + colors[j];
+
+                return; // Stop searching after finding the first card
+            }
+        }
 }
 
-void actvCrd()
+void crdCnv(int array[][COL], int ROW)
 {
+    // Create an array of strings for the card colors
+    string colors[] = {"Red", "Blue", "Yellow", "Green", "Wild"};
+    // Create an array of strings for the card values
+    string values[] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "SKIP", "DRAW 2"};
+
+    for (int i = 0; i < ROW; i++)
+    {
+        for (int j = 0; j < COL; j++)
+        {
+            if (array[i][j] != 0) // If there are cards in this slot
+            {
+                cout << values[i] << " of " << colors[j];
+            }
+        }
+    }
 }
-void menuSel()
+
+void play(int plyrHnd[][COL], int actvArr[][COL], string &actvDsp, int &plyrCnt, int colIdx, int numSel, int ROW, bool &turn)
 {
+    int color = 0, number = 0;
+
+    // Find the currently active card
+    for (int i = 0; i < ROW; i++) // Iterate over columns (card numbers)
+    {
+        for (int j = 0; j < COL; j++) // Iterate over rows (colors)
+        {
+            if (actvArr[i][j] > 0) // Active card found
+            {
+                color = j;  // Store the active card's color
+                number = i; // Store the active card's number
+            }
+        }
+    }
+
+    // Verify if the card can be played
+    if (colIdx == color || numSel == number) // Matches either color or number
+    {
+        if (plyrHnd[numSel][colIdx] > 0) // Check if player has the card
+        {
+            plyrHnd[numSel][colIdx]--; // Remove card from player's hand
+            cout << "Card played!" << endl;
+
+            // Clear the active array
+            for (int i = 0; i < ROW; i++)
+                for (int j = 0; j < COL; j++)
+                    actvArr[i][j] = 0;
+
+            // Set the active card
+            actvArr[numSel][colIdx] = 1;
+            actvCrd(actvArr, actvDsp, ROW); // Update the active card display
+
+            cout << "You've played a " << actvDsp << endl;
+            turn = false; // Switch to NPC turn
+            plyrCnt--;
+        }
+        else
+        {
+            cout << "You don't have that card!" << endl;
+        }
+    }
+    else
+    {
+        cout << "Neither the color nor the number matches!" << endl;
+    }
+}
+
+int getCol(char colSel)
+{
+    switch (colSel)
+    {
+    case 'R':
+    case 'r':
+        return 0; // Red
+    case 'B':
+    case 'b':
+        return 1; // Blue
+    case 'Y':
+    case 'y':
+        return 2; // Yellow
+    case 'G':
+    case 'g':
+        return 3; // Green
+    case 'W':
+    case 'w':
+        return 4; // Wild
+    default:
+        cout << "Invalid color!" << endl;
+        return -1;
+    }
+}
+
+void wldPlay(int plyrHnd[][COL], int actvArr[][COL], string &actvDsp, int colIdx, int numSel, int ROW, bool &turn)
+{
+    char colSel; // initialize user input of color char
+    cout << "You played a Wild Card! Choose a color to swap to (R = Red, B = Blue, Y = Yellow, G = Green): " << endl;
+    cin >> colSel; // choose color
+    colIdx = 0;
+    colIdx = getCol(colSel); // fetch color index
+
+    // cout << "Choose which wild card slot!" << endl; // validate correct wild index slot
+    // cin >> numSel;                                  // choose wildcard index slot
+    // while (plyrHnd[numSel][colIdx] == 0)            // Check if player has the card
+    // {
+    //     cout << "Invalid input! Make sure you choose the right WILD index from your hand 0-2" << endl;
+    //     cout << "Input Wild Card" << endl;
+    //     cin >> colSel;
+    //     colIdx = getCol(colSel);
+    //     cout << "Input Wild index 0-2" << endl;
+    //     cin >> numSel;
+    // }
+
+    while (colIdx < 0 || colIdx > 3)
+    {
+        colIdx = 0;
+        cout << "Invalid input! Choose a valid color (R = Red, B = Blue, Y = Yellow, G = Green): " << endl;
+        cin >> colSel;
+        colIdx = getCol(colSel); // fetch color index
+    }
+
+    // Clear the active array2
+    for (int i = 0; i < ROW; i++)
+        for (int j = 0; j < COL; j++)
+            actvArr[i][j] = 0; // Reset active card display
+
+    // Set the chosen color as active
+    actvArr[0][colIdx] = 1; // Assign the wild card to the new color
+    actvDsp = (colIdx == 0) ? "Red" : (colIdx == 1) ? "Blue"
+                                  : (colIdx == 2)   ? "Yellow"
+                                                    : "Green";
+
+    cout << "Wild card has been played! The new color is " << actvDsp << "!" << endl;
+    turn = false; // End player's turn
+}
+
+// function to process WILD card color change
+void wild(int actvArr[][COL], int ROW, int &j)
+{
+    actvArr[0][j] = 1; // Set wild card action to the active card
+    string newCol;
+    if (j == 0)
+    {
+        newCol = "RED";
+    }
+    else if (j == 1)
+    {
+        newCol = "BLUE";
+    }
+    else if (j == 2)
+    {
+        newCol = "YELLOW";
+    }
+    else if (j == 3)
+    {
+        newCol = "GREEN";
+    }
+    cout << "Wild card has been played! The new color is " << newCol << "!" << endl;
+}
+
+void npcTrn(int plyrHnd[][COL], int npcHnd[][COL], int actvArr[][COL], string &actvDsp, int &plyrCnt, int &npcCnt, int ROW, bool &turn)
+{
+    int color = 0, number = 0;
+
+    // Find the currently active card
+    for (int i = 0; i < ROW; i++) // Iterate over columns (card numbers)
+    {
+        for (int j = 0; j < COL; j++) // Iterate over rows (colors)
+        {
+            if (actvArr[i][j] > 0) // Active card found
+            {
+                color = j;  // Store the active card's color
+                number = i; // Store the active card's number
+            }
+        }
+    }
+    // Search the NPC hand to see if there are any values at either coordinate of the NPC hand.
+    bool found = false; // create a boolean to initialize a search for the next possible card
+    while (!found)
+    {
+        int i = 0; // manually set indexes at 0 since we are not using for loops
+        while (i < ROW && !found)
+        {
+            int j = 0;
+            while (j < COL && !found)
+            {
+                if ((npcHnd[i][j] > 0) && (i == number || j == color))
+                {
+                    // Clear the active array
+                    for (int i = 0; i < ROW; i++)
+                        for (int j = 0; j < COL; j++)
+                        {
+                            actvArr[i][j] = 0; // set every value to zero
+                        }
+                    actvArr[i][j] = 1; // if found, set card found value to the active card in play.
+                    npcHnd[i][j]--;    // decrement npc card from hand
+
+                    cout << "The opponent has played a ";
+                    crdCnv(actvArr, ROW);
+                    cout << "!" << endl;
+
+                    npcCnt--; // reduce total npc hand count
+
+                    cout << "The opponent now has " << npcCnt << " cards in their hand!" << endl;
+                    found = true; // set found to true so we can break out of loops
+                    turn = true;
+                }
+                j++; // increment when still not found
+            }
+            i++; // increment when still not found
+        }
+
+        // while STILL not found any matches, prompt the enemy to draw cards
+        if (!found)
+        {
+            draw(npcHnd, ROW);
+            npcCnt++;
+            cout << "The opponent draws a card!" << endl
+                 << endl;
+        }
+    }
 }
