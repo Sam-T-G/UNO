@@ -50,6 +50,9 @@ int main(int argv, char **argc)
     srand(static_cast<unsigned int>(time(0)));
 
     // Declare Variables
+    char
+        menuSel; // menu selection
+
     string
         name,    // player name
         btrWrse, // better or worse string
