@@ -32,6 +32,7 @@ Program needs to be able to reverse order of play (can be future implementation 
 #include <ctime>    //time library
 #include <deque>    //que library
 #include <fstream>  //file input output library
+#include <vector>
 using namespace std;
 
 // User Libraries
