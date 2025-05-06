@@ -6,6 +6,7 @@ Purpose: UNO! Game Version 3.1
 
 // System Libraries
 #include <iostream>
+#include <iomanip>
 #include <cstdlib>
 #include <string>
 #include <vector>
@@ -21,19 +22,21 @@ using namespace std;
 
 // Function Protypes
 // Structure to hold card information
-struct card
+struct Card
 {
     // color of card
     char color; // red = r | blue = b | y = yellow | g  = green | wild = w
     char suit;  // numbers =  0-9 | skip = > | draw 2 = + | draw 4 | * if wild, numbers/skip interpreted as normal cards
 };
 
-struct player
+struct Player
 {
     string name;      // Player name
-    struct card hand; // Nested Card Structure to house hand information
+    struct Card hand; // Nested Card Structure to house hand information
     int score;        // Player score
 };
+
+void menu(Player &); // Function to display modular main menu screen
 
 int main(int argv, char **argc)
 {
@@ -45,12 +48,49 @@ int main(int argv, char **argc)
     // Initialize Variables
 
     // Map the inputs and outputs - Process
+    Player player1; // Create a player 1 structure to hold player's information - later can be modularized
+    menu(player1);  // pass player 1 structure into function
+    cout << player1.name;
 
     // Display and output the results
 
     // Exit the program
     return 0;
 }
+
+// Main menu function
+void menu(Player &player1)
+{
+    for (int i = 0; i < 56; i++)
+    {
+        cout << "~";
+    }
+    cout << endl
+         << "UNO! The game where friendships and loyalties go to die" << endl;
+    for (int i = 0; i < 56; i++)
+    {
+        cout << "-";
+    }
+    cout << endl;
+    cout << "|" << setw(30) << "Main Menu" << setw(25) << "|" << endl
+         << endl;
+    for (int i = 0; i < 56; i++)
+    {
+        cout << "-";
+    }
+    cout << endl
+         << "|" << setw(3) << " " << "Input caracters corresponding to your selections" << setw(4) << "|" << endl
+         << endl;
+    cout << "|" << setw(10) << " " << "Enter your name to Start the Game" << setw(11) << " " << "|" << endl
+         << endl;
+    for (int i = 0; i < 56; i++)
+    {
+        cout << "-";
+    }
+    cout << endl;
+    cin >> player1.name;
+    cout << endl;
+};
 
 // Draw function
 
