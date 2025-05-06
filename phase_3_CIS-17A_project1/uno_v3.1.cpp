@@ -56,6 +56,10 @@ int main(int argv, char **argc)
 
 // Deal function
 
+// Play function
+
+// Sort Hand Function
+
 // Active Card Function
 
 // User Interface Function
