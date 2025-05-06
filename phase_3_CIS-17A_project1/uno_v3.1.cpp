@@ -31,12 +31,17 @@ struct Card
 
 struct Player
 {
-    string name;      // Player name
-    struct Card hand; // Nested Card Structure to house hand information
-    int score;        // Player score
+    string name;       // Player name
+    vector<Card> hand; // Nested Card Vector to house hand contents
+    int score;         // Player score
 };
 
-void menu(Player &); // Function to display modular main menu screen
+void menu(Player &);         // Function to display modular main menu screen
+void draw(Card &);           // Modular Function to Draw a Card
+void deal(Card &, Player &); // Function to deal initial hand to a given player
+void actvCrd();              // Function to place current active card
+void crdDisp();              // Function to display current card in play
+void play(Card &, Player &); // Funcition to put a card in play and to check if the play is valid
 
 int main(int argv, char **argc)
 {
@@ -93,14 +98,22 @@ void menu(Player &player1)
 };
 
 // Draw function
+void draw(Card &) {
+
+};
 
 // Deal function
+void deal() {};
 
 // Play function
+void play(Card &, Player &) {};
 
 // Sort Hand Function
+void srtHnd(vector<Card> P1Hand) {
 
-// Active Card Function
+};
+
+// Active Card Display Function
 
 // User Interface Function
 
