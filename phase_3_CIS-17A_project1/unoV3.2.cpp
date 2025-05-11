@@ -77,7 +77,7 @@ void crdDisp(Player &);                           // Function to display current
 void usrInt(Player &, Player &, Card &);          // Function to show user interface and prompt
 void play(Card &, Player &);                      // Funcition to put a card in play and to check if the play is valid
 void plyrTrn(Player &, Player &, Card &, bool &); // Function to prompt and process playr turn
-void npcTrn(Player &, Player &, Card &);          // Function to process npc logic
+void npcTrn(Player &, Player &, Card &, bool &);  // Function to process npc logic
 
 Card draw();
 
@@ -98,7 +98,6 @@ int main(int argv, char **argc)
     Card actvCrd = draw();
     menu(*p1); // pass player 1 structure into function
     deal(*p1, *npc);
-    crdDisp(*p1); // Display cards in hand
 
     bool turn = true; // Player starts first
 
@@ -109,15 +108,9 @@ int main(int argv, char **argc)
         {
             plyrTrn(*p1, *npc, actvCrd, turn);
         }
-        else // NPC's turn
+        else if (turn == false) // NPC's turn
         {
-            npcTrn(*p1, *npc, actvCrd);
-        }
-
-        // Only toggle turn if game is still running
-        if (!p1->hand.empty() && !npc->hand.empty())
-        {
-            turn = !turn;
+            npcTrn(*p1, *npc, actvCrd, turn);
         }
     }
 
@@ -200,8 +193,6 @@ void dispCrd(Card &actvCrd)
     string colors[] = {"Red", "Blue", "Yellow", "Green", "Wild"};
     string values[] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "SKIP", "DRAW 2", "DRAW 4"};
 
-    cout << "Active Card: ";
-
     if (actvCrd.color == WILD)
     {
         cout << "Wild" << endl;
@@ -269,15 +260,6 @@ void usrInt(Player &p1, Player &npc, Card &actvCrd)
     cout << setw(16) << " " << "What would you like to do?" << endl;
     cout << "|  Choose a card to play #[0-" << p1.hand.size() << "]  |" << endl;
     cout << "|  Type -1 to draw a card.   | " << endl;
-}
-
-// Display Hand Function
-void crdDisp(Player &p1)
-{
-    for (int i = 0; i < p1.hand.size(); i++)
-    {
-        cout << "Card " << i << ": " << crdInfo(p1.hand[i]) << endl;
-    }
 }
 
 // Card Info to Decipher card information
@@ -371,36 +353,32 @@ void play(Player &p1, Player &npc, int choice, Card &actvCrd, bool &turn)
     {
         actvCrd = slctd;                         // Update active card
         p1.hand.erase(p1.hand.begin() + choice); // Remove played card
-        turn = false;
         cout << "You've played a ";
-
-        // Display active card in human-readable format
-        dispCrd(actvCrd); // Use descriptive print function
+        dispCrd(actvCrd); // Display active card in human-readable format
 
         // Handle special cards
         if (slctd.suit == 10) // SKIP
         {
-            turn = true; // Player goes again
             cout << "SKIP played! It's your turn again!" << endl;
+            turn = true; // Player goes again
         }
         else if (slctd.suit == 11) // DRAW 2
         {
-            turn = true; // Player goes again
             cout << "DRAW 2 played! Opponent draws 2 cards!" << endl;
             npc.hand.push_back(draw()); // draw two cards
             npc.hand.push_back(draw());
             cout << "Opponent now has " << npc.hand.size() << " cards!" << endl;
+            turn = true; // Player goes again
         }
         else if (slctd.suit == 12) // DRAW 4 (if added)
         {
-            turn = true;
             cout << "DRAW 4 played! Opponent draws 4 cards!" << endl;
             for (int i = 0; i < 4; i++) // loop to process 4 card draw
             {
                 npc.hand.push_back(draw());
             }
-
             cout << "Opponent now has " << npc.hand.size() << " cards!" << endl;
+            turn = true; // Player goes again
         }
 
         // Handle color choice if Wild
@@ -422,8 +400,8 @@ void plyrTrn(Player &p1, Player &npc, Card &actvCrd, bool &turn)
 
     while (turn == true)
     {
-        turn = false;
-        usrInt(p1, npc, actvCrd);
+        turn = false;             // Default set turn to false at the start of the loop
+        usrInt(p1, npc, actvCrd); // Display the current game state
         cin >> choice;
 
         if (cin.fail())
@@ -437,12 +415,12 @@ void plyrTrn(Player &p1, Player &npc, Card &actvCrd, bool &turn)
         {
             cout << "You chose to draw a card." << endl;
             p1.hand.push_back(draw());
-            turn = true;
+            turn = true; // Player goes again after drawing a card
         }
         else if (choice < 0 || choice >= static_cast<int>(p1.hand.size()))
         {
             cout << "Invalid choice. Pick a valid card index or -1 to draw." << endl;
-            turn = true;
+            turn = true; // Allow another turn if the choice is invalid
         }
         else
         {
@@ -452,73 +430,73 @@ void plyrTrn(Player &p1, Player &npc, Card &actvCrd, bool &turn)
 }
 
 // NPC turn function sequence
-void npcTrn(Player &p1, Player &npc, Card &actvCrd)
+void npcTrn(Player &p1, Player &npc, Card &actvCrd, bool &turn)
 {
-    bool valid = false; // create a boolean to check if move is valid
-    int i = 0;          // create index for while loop
+    bool valid = false;
+    int i = 0;
 
-    // While no valid move has been made, continue checking NPC's hand and drawing cards
-    while (!valid)
+    while (!valid) // Check if valid play has been made
     {
-        // Look through the NPC's hand if no valid move has been found
         if (i < npc.hand.size())
         {
-            Card c = npc.hand[i]; // Create a copy of card at given index
+            Card c = npc.hand[i]; // Make a copy of card at given index
 
             if (c.color == actvCrd.color || c.suit == actvCrd.suit || c.color == WILD)
             {
-                actvCrd = c;                          // set active card equal to placeholder if meets criteria
-                npc.hand.erase(npc.hand.begin() + i); // erase hand index but using erase and begin shifts all elements to the left
+                actvCrd = c;
+                npc.hand.erase(npc.hand.begin() + i);
 
                 cout << "NPC played: " << crdInfo(actvCrd) << "!" << endl;
+
+                // Default: player's turn next
+                turn = true;
 
                 if (c.color == WILD)
                 {
                     CardClr newClr = static_cast<CardClr>(rand() % 4);
                     actvCrd.color = newClr;
                     string colors[] = {"Red", "Blue", "Yellow", "Green"};
-                    cout << "NPC plays a WILD! and chooses " << colors[newClr] << "!" << endl;
+                    cout << "NPC plays a WILD and chooses " << colors[newClr] << "!" << endl;
                 }
 
-                // Handle special actions
+                // Handle special cards
                 if (c.suit == SKIP)
                 {
                     cout << "NPC played SKIP! You lose a turn." << endl;
+                    turn = false;
                 }
-                else if (c.suit == DRAW_TWO) // draw two
+                else if (c.suit == DRAW_TWO)
                 {
                     cout << "NPC played DRAW 2! You draw 2 cards." << endl;
                     for (int i = 0; i < 2; ++i)
-                        npc.hand.push_back(draw());
+                        p1.hand.push_back(draw());
+                    turn = false;
                 }
                 else if (c.suit == DRAW_FOUR)
                 {
                     cout << "NPC played DRAW 4! You draw 4 cards." << endl;
                     for (int i = 0; i < 4; ++i)
-                        npc.hand.push_back(draw());
+                        p1.hand.push_back(draw());
+                    turn = false;
                 }
 
-                valid = true; // Set to true when a valid card has been played
+                valid = true; // Set Valid to true if valid play has been made
             }
             else
             {
-                ++i; // Move to next card in hand if the current card is not valid
+                ++i;
             }
         }
         else
         {
-            // If no valid card is found in the hand, NPC draws a new card
             Card drawn = draw();
             npc.hand.push_back(drawn);
-
             cout << "NPC draws a card!" << endl;
 
-            // If the drawn card is valid, play it
             if (drawn.color == actvCrd.color || drawn.suit == actvCrd.suit || drawn.color == WILD)
             {
                 actvCrd = drawn;
-                npc.hand.pop_back(); // Play the drawn card
-
+                npc.hand.pop_back(); // play the drawn card
                 cout << "NPC plays the drawn card: " << crdInfo(actvCrd) << "!" << endl;
 
                 if (drawn.color == WILD)
@@ -529,7 +507,32 @@ void npcTrn(Player &p1, Player &npc, Card &actvCrd)
                     cout << "NPC chooses " << colors[newClr] << "!" << endl;
                 }
 
-                valid = true; // Set to true when the drawn card is valid
+                // If it's a special card, handle turn
+                if (drawn.suit == SKIP || drawn.suit == DRAW_TWO || drawn.suit == DRAW_FOUR)
+                {
+                    if (drawn.suit == SKIP)
+                        cout << "NPC played SKIP! You lose a turn." << endl;
+                    else if (drawn.suit == DRAW_TWO)
+                    {
+                        cout << "NPC played DRAW 2! You draw 2 cards." << endl;
+                        for (int i = 0; i < 2; ++i)
+                            p1.hand.push_back(draw());
+                    }
+                    else if (drawn.suit == DRAW_FOUR)
+                    {
+                        cout << "NPC played DRAW 4! You draw 4 cards." << endl;
+                        for (int i = 0; i < 4; ++i)
+                            p1.hand.push_back(draw());
+                    }
+
+                    turn = false; // NPC goes again
+                }
+                else
+                {
+                    turn = true; // Player's turn
+                }
+
+                valid = true;
             }
         }
     }
