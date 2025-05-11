@@ -98,7 +98,6 @@ int main(int argv, char **argc)
     Card actvCrd = draw();
     menu(*p1); // pass player 1 structure into function
     deal(*p1, *npc);
-    crdDisp(*p1); // Display cards in hand
 
     bool turn = true; // Player starts first
 
@@ -261,15 +260,6 @@ void usrInt(Player &p1, Player &npc, Card &actvCrd)
     cout << setw(16) << " " << "What would you like to do?" << endl;
     cout << "|  Choose a card to play #[0-" << p1.hand.size() << "]  |" << endl;
     cout << "|  Type -1 to draw a card.   | " << endl;
-}
-
-// Display Hand Function
-void crdDisp(Player &p1)
-{
-    for (int i = 0; i < p1.hand.size(); i++)
-    {
-        cout << "Card " << i << ": " << crdInfo(p1.hand[i]) << endl;
-    }
 }
 
 // Card Info to Decipher card information
