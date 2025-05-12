@@ -46,6 +46,7 @@ void plyrTrn(Player &, Player &, Card &, bool &); // Function to prompt and proc
 void npcTrn(Player &, Player &, Card &, bool &);  // Function to process npc logic
 void calcScrs(Player &, Player &npc);
 void readScrs();
+void updtScr(const string &, const Scores &);
 
 Card draw();
 
@@ -97,6 +98,13 @@ int main(int argv, char **argc)
             cout << "========================================================" << endl
                  << endl;
             calcScrs(*p1, *npc);
+            char upd;
+            cout << "Update existing saved score? (y/n): ";
+            cin >> upd;
+            if (tolower(upd) == 'y')
+            {
+                updtScr(p1->name, p1->scr); // update score function
+            }
         }
     }
     else if (npc->hand.empty()) // NPC wins and score not saved
@@ -654,4 +662,30 @@ void readScrs()
     in.close();
 }
 
-// Display results
+void updtScr(const string &player, const Scores &newScr)
+{
+    fstream file("scores.dat", ios::in | ios::out | ios::binary);
+    if (!file)
+    {
+        cerr << "Failed to open scores.dat\n";
+        return;
+    }
+
+    SaveData temp;
+    while (file.read(reinterpret_cast<char *>(&temp), sizeof(SaveData)))
+    {
+        if (player == temp.name)
+        {
+            // Move file pointer back to start of this record
+            file.seekp(-static_cast<int>(sizeof(SaveData)), ios::cur);
+            temp.scr = newScr;
+            file.write(reinterpret_cast<char *>(&temp), sizeof(SaveData));
+            cout << "Score for " << player << " updated.\n";
+            file.close();
+            return;
+        }
+    }
+
+    file.close();
+    cout << "Player not found in save file.\n";
+}
