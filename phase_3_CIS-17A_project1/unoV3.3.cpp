@@ -640,14 +640,15 @@ void readScrs()
     SaveData data;
     int count = 1;
 
-    cout << "\n=== SCORE HISTORY ===\n";
+    cout << "\n"
+         << setw(12) << " " << "=== SCORE HISTORY ===\n";
 
     while (in.read(reinterpret_cast<char *>(&data), sizeof(SaveData)))
     {
-        cout << "Record " << count++ << ":\n";
-        cout << "  Player  : " << data.name << '\n';
-        cout << "  Turns   : " << data.scr.trns << '\n';
-        cout << "  HiCombo : " << data.scr.cmbHi << "\n\n";
+        cout << setw(15) << " " << "Record " << count++ << ":\n";
+        cout << setw(15) << " " << "  Player  : " << data.name << '\n';
+        cout << setw(15) << " " << "  Turns   : " << data.scr.trns << '\n';
+        cout << setw(15) << " " << "  HiCombo : " << data.scr.cmbHi << "\n\n";
     }
 
     in.close();
