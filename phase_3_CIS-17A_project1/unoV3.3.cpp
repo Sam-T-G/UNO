@@ -1,7 +1,7 @@
 /*
 Name: Samuel Gerungan
 Date: 4/29/25
-Purpose: UNO! Game Version 3.2
+Purpose: UNO! Game Version 3.3
 */
 
 // System Libraries
@@ -11,6 +11,11 @@ Purpose: UNO! Game Version 3.2
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <fstream>
+#include "Player.h"
+#include "Card.h"
+#include "Scores.h"
+
 using namespace std;
 
 // User Libraries
@@ -22,51 +27,12 @@ using namespace std;
 // Conversion between units
 
 // Function Protypes
-// Structure to hold card information
-
-enum CardClr
+// Most structures on external files
+// Save Data structure
+struct SaveData
 {
-    RED,
-    BLUE,
-    YELLOW,
-    GREEN,
-    WILD
-};
-
-enum CardSuit
-{
-    ZERO,
-    ONE,
-    TWO,
-    THREE,
-    FOUR,
-    FIVE,
-    SIX,
-    SEVEN,
-    EIGHT,
-    NINE,
-    SKIP,
-    DRAW_TWO,
-    DRAW_FOUR
-};
-struct Card
-{
-    // color of card
-    CardClr color; // red = 0 | blue = 1 | 2 = yellow | 3  = green | wild = 4
-    CardSuit suit; // numbers =  0-9 | skip = 10 | draw 2 = 11 | draw 4 = 12 | * if wild, numbers/skip interpreted as normal cards
-};
-
-struct Scores
-{
-    int numTrns; // Number of turns
-    int hiCombo; // integer value to store highest number of combo
-};
-
-struct Player
-{
-    string name;           // Player name
-    vector<Card> hand;     // Nested Card Vector to house hand contents
-    struct Scores plyrScr; // nested structure to store scores
+    char name[20]; // Fixed-length(20) C-string name
+    Scores scr;    // Score data (turns, combo)
 };
 
 void menu(Player &);                              // Function to display modular main menu screen
@@ -78,6 +44,8 @@ void usrInt(Player &, Player &, Card &);          // Function to show user inter
 void play(Card &, Player &);                      // Funcition to put a card in play and to check if the play is valid
 void plyrTrn(Player &, Player &, Card &, bool &); // Function to prompt and process playr turn
 void npcTrn(Player &, Player &, Card &, bool &);  // Function to process npc logic
+void calcScrs(Player &, Player &npc);
+void readScrs();
 
 Card draw();
 
@@ -116,12 +84,27 @@ int main(int argv, char **argc)
 
     if (p1->hand.empty())
     {
-        cout << "You win!" << endl;
+        cout << "========================================================" << endl
+             << endl;
+        cout << setw(22) << " " << "You win!" << endl
+             << endl;
+        cout << "========================================================" << endl;
+        char upd; // temporary update variable
+        cout << setw(9) << " " << "Update your saved score? (y/n): ";
+        cin >> upd;
+        if (tolower(upd) == 'y')
+        {
+            cout << "========================================================" << endl
+                 << endl;
+            calcScrs(*p1, *npc);
+        }
     }
-    else
+    else if (npc->hand.empty()) // NPC wins and score not saved
     {
         cout << "NPC wins!" << endl;
     }
+
+    readScrs(); // View history of past game scores
 
     // Clean up!
     delete p1;
@@ -129,7 +112,7 @@ int main(int argv, char **argc)
 
     // Exit the program
     return 0;
-}
+};
 
 // Main menu function
 void menu(Player &p1)
@@ -179,10 +162,48 @@ void wildCrd(Card &card)
 {
     if (card.color == WILD)
     {
-        int newClr;
-        cout << "Choose a new color (0: RED, 1: BLUE, 2: YELLOW, 3: GREEN): ";
-        cin >> newClr;
-        card.color = static_cast<CardClr>(newClr);
+        char newClr;
+        bool valid = false;
+
+        while (!valid)
+        {
+            cout << "--------------------------------------------------------" << endl
+                 << setw(18) << " " << "Choose a new color!" << endl
+                 << setw(6) << " " << "R = Red, B = Blue, Y = Yellow, G = Green" << endl
+                 << "--------------------------------------------------------" << endl
+                 << "New Color: ";
+            cin >>
+                newClr;
+            newClr = toupper(newClr); // Handle lowercase input
+            cout << "--------------------------------------------------------" << endl;
+
+            switch (newClr)
+            {
+            case 'R':
+                card.color = RED;
+                cout << "You selected: Red" << endl;
+                valid = true;
+                break;
+            case 'B':
+                card.color = BLUE;
+                cout << "You selected: Blue" << endl;
+                valid = true;
+                break;
+            case 'Y':
+                card.color = YELLOW;
+                cout << "You selected: Yellow" << endl;
+                valid = true;
+                break;
+            case 'G':
+                card.color = GREEN;
+                cout << "You selected: Green" << endl;
+                valid = true;
+                break;
+            default:
+                cout << "Invalid color selection. Please try again." << endl;
+            }
+            cout << "========================================================" << endl;
+        }
     }
 }
 
@@ -231,12 +252,14 @@ void srtHnd(Player &p1)
 // User Interface Function
 void usrInt(Player &p1, Player &npc, Card &actvCrd)
 {
+    srtHnd(p1); // Sort the player's hand before displaying
+
     string colors[] = {"Red", "Blue", "Yellow", "Green", "Wild"};
     string values[] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "SKIP", "DRAW 2", "DRAW 4"};
 
-    cout << "It's your turn, " << p1.name << "!" << endl;
-    // Display Active Card
-    cout << setw(17) << " " << "Active Card: " << crdInfo(actvCrd) << endl;
+    cout << "========================================================" << endl;
+    cout << fixed << setw(16) << " " << "It's your turn, " << p1.name << "!" << endl;
+    cout << "--------------------------------------------------------" << endl;
 
     // Display player's hand
     cout
@@ -251,15 +274,16 @@ void usrInt(Player &p1, Player &npc, Card &actvCrd)
         cout << endl;
     }
 
-    cout << endl
-         << "| Cards in your hand: " << p1.hand.size()
-         << "  | Opponent number of cards: " << npc.hand.size() << " |" << endl
-         << endl;
+    // Display Active Card
+    cout << "--------------------------------------------------------" << endl;
+    cout << setw(17) << " " << "Active Card: " << crdInfo(actvCrd) << endl;
+    cout << "| Cards in your hand: " << p1.hand.size()
+         << "  | Opponent number of cards: " << npc.hand.size() << " |" << endl;
 
     // Prompt for how player wants to proceed
+    cout << "--------------------------------------------------------" << endl;
     cout << setw(16) << " " << "What would you like to do?" << endl;
-    cout << "|  Choose a card to play #[0-" << p1.hand.size() << "]  |" << endl;
-    cout << "|  Type -1 to draw a card.   | " << endl;
+    cout << "| Choose a card to play [0-" << p1.hand.size() << "] | Type -1 to draw a card | " << endl;
 }
 
 // Card Info to Decipher card information
@@ -353,8 +377,14 @@ void play(Player &p1, Player &npc, int choice, Card &actvCrd, bool &turn)
     {
         actvCrd = slctd;                         // Update active card
         p1.hand.erase(p1.hand.begin() + choice); // Remove played card
-        cout << "You've played a ";
+        cout << setw(16) << " " << "You've played a ";
         dispCrd(actvCrd); // Display active card in human-readable format
+
+        if (p1.hand.empty())
+        {
+            cout << setw(13) << " " << "You've played your last card!" << endl;
+            return; // Exit early — game ends after this play
+        }
 
         // Handle special cards
         if (slctd.suit == 10) // SKIP
@@ -386,10 +416,18 @@ void play(Player &p1, Player &npc, int choice, Card &actvCrd, bool &turn)
         {
             wildCrd(actvCrd); // call wild card function
         }
+
+        // Keep Track of Player combo
+        p1.updCmb();
+        npc.rstCmb();
+
+        // increment turn count
+        p1.trns++;
     }
     else
     {
         cout << "Invalid play: Card does not match active card by color or number!" << endl;
+        turn = true; // Let the player try again
     }
 }
 
@@ -402,7 +440,10 @@ void plyrTrn(Player &p1, Player &npc, Card &actvCrd, bool &turn)
     {
         turn = false;             // Default set turn to false at the start of the loop
         usrInt(p1, npc, actvCrd); // Display the current game state
-        cin >> choice;
+        cout << "--------------------------------------------------------" << endl;
+        cout << "Which card would you like to play?: "; // Prompt for visual Clarity
+        cin >> choice;                                  // Input player choice
+        cout << "========================================================" << endl;
 
         if (cin.fail())
         {
@@ -414,7 +455,8 @@ void plyrTrn(Player &p1, Player &npc, Card &actvCrd, bool &turn)
         else if (choice == -1)
         {
             cout << "You chose to draw a card." << endl;
-            p1.hand.push_back(draw());
+            p1.drwCrd();
+            p1.rstCmb(); // Reset combo streak
             turn = true; // Player goes again after drawing a card
         }
         else if (choice < 0 || choice >= static_cast<int>(p1.hand.size()))
@@ -445,8 +487,17 @@ void npcTrn(Player &p1, Player &npc, Card &actvCrd, bool &turn)
             {
                 actvCrd = c;
                 npc.hand.erase(npc.hand.begin() + i);
+                p1.rstCmb(); // Reset player's combo
 
                 cout << "NPC played: " << crdInfo(actvCrd) << "!" << endl;
+
+                // Check if NPC hand is empty
+                if (npc.hand.empty())
+                {
+                    cout << "NPC has played their last card!" << endl;
+                    p1.rstCmb();
+                    return;
+                }
 
                 // Default: player's turn next
                 turn = true;
@@ -492,12 +543,20 @@ void npcTrn(Player &p1, Player &npc, Card &actvCrd, bool &turn)
             Card drawn = draw();
             npc.hand.push_back(drawn);
             cout << "NPC draws a card!" << endl;
+            npc.rstCmb(); // Reset combo on failed turn
 
             if (drawn.color == actvCrd.color || drawn.suit == actvCrd.suit || drawn.color == WILD)
             {
                 actvCrd = drawn;
                 npc.hand.pop_back(); // play the drawn card
                 cout << "NPC plays the drawn card: " << crdInfo(actvCrd) << "!" << endl;
+
+                // Edge case for when NPC wins with last drawn card
+                if (npc.hand.empty())
+                {
+                    cout << "NPC plays the final drawn card and wins!" << endl;
+                    return;
+                }
 
                 if (drawn.color == WILD)
                 {
@@ -539,5 +598,59 @@ void npcTrn(Player &p1, Player &npc, Card &actvCrd, bool &turn)
 }
 
 // Save Scores Function
+void calcScrs(Player &p1, Player &npc)
+{
+    p1.scr.trns = p1.trns;
+    p1.scr.cmbHi = p1.cmbMx;
+
+    int diff = npc.hand.size(); // card difference
+
+    cout << "\n--- SCORES ---\n";
+    cout << p1.name << " wins in " << p1.scr.trns << " turns\n";
+    cout << "Highest combo: " << p1.scr.cmbHi << '\n';
+    cout << "Card diff: " << diff << "\n";
+
+    // Prepare SaveData object
+    SaveData data;
+    strncpy(data.name, p1.name.c_str(), sizeof(data.name));
+    data.name[sizeof(data.name) - 1] = '\0'; // ensure null-terminated
+    data.scr = p1.scr;
+
+    ofstream out("scores.dat", ios::binary | ios::app);
+    if (out)
+    {
+        out.write(reinterpret_cast<char *>(&data), sizeof(SaveData));
+        out.close();
+    }
+    else
+    {
+        cerr << "Failed to write to scores.dat\n";
+    }
+}
+
+void readScrs()
+{
+    ifstream in("scores.dat", ios::binary);
+    if (!in)
+    {
+        cerr << "Error opening scores.dat\n";
+        return;
+    }
+
+    SaveData data;
+    int count = 1;
+
+    cout << "\n=== SCORE HISTORY ===\n";
+
+    while (in.read(reinterpret_cast<char *>(&data), sizeof(SaveData)))
+    {
+        cout << "Record " << count++ << ":\n";
+        cout << "  Player  : " << data.name << '\n';
+        cout << "  Turns   : " << data.scr.trns << '\n';
+        cout << "  HiCombo : " << data.scr.cmbHi << "\n\n";
+    }
+
+    in.close();
+}
 
 // Display results
