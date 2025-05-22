@@ -31,6 +31,12 @@ This is a terminal-based UNO game built in C++ (Version 3.3) that lets you play 
 
 ## ▶️ How to Compile and Run
 
+### Download Latest Release
+
+```
+Make sure to download the latest release for updated bug fixes, user interface updates, etc.
+```
+
 ### Using g++ (Linux/Mac/WSL/Git Bash):
 
 ```bash
