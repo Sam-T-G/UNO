@@ -10,6 +10,12 @@ void NPCPlayer::printRole() const
     cout << name << " is a " << role << " player.\n";
 }
 
+// SAVE FOR FUTURE IMPLEMENTATION
+//  void NPCPlayer::disPrvSts() const
+//  {
+//      cout << "[NPC DEBUG] Max Combo: " << getMaxCombo() << ", Turns: " << trns << endl;
+//  }
+
 // void NPCPlayer::takeTurn(Player &opponent, Card &actvCrd, bool &turn) {
 //     npcTrn(opponent, *this, actvCrd, turn); // Use existing npcTrn()
 // }

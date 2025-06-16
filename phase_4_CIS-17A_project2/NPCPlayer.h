@@ -12,6 +12,7 @@ public:
 
     void printRole() const;
     void takeTurn(Player &opponent, Card &actvCrd, bool &turn) override;
+    // void disPrvSts() const override;  //save for future implementation
 };
 
 #endif
