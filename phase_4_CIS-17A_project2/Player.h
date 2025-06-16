@@ -7,19 +7,30 @@
 #include "Scores.h"
 using namespace std;
 
-struct Player
+class Player
 {
+public:
     string name;
     vector<Card> hand;
     int trns = 0;
+
+    int hndSze() const;
+
+    // Public wrappers for private logic
+    void resetCombo();
+    void updateCombo();
+    void drawCard();
+    Scores getScores() const;
+    void setScores(const Scores &);
+    int getMaxCombo() const;
+
+private:
     int cmb = 0;
     int cmbMx = 0;
-    Scores scr;
-
     void rstCmb();
     void updCmb();
     void drwCrd();
-    int hndSze() const;
+    Scores scr;
 };
 
 #endif
