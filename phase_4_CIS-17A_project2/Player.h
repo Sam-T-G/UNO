@@ -10,11 +10,13 @@ using namespace std;
 class Player
 {
 public:
+    Player();  // Constructor
+    ~Player(); // Destructor
     string name;
     vector<Card> hand;
     int trns = 0;
 
-    int hndSze() const;
+    int hndSze() const { return hand.size(); } // inline method
 
     // Public wrappers for private logic
     void resetCombo();
