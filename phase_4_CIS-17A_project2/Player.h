@@ -27,7 +27,7 @@ public:
     void setScores(const Scores &);
     int getMaxCombo() const;
     virtual void takeTurn(Player &opponent, Card &actvCrd, bool &turn);
-    virtual ~Player() {} // ✅ Best practice for base class
+    virtual ~Player() {} // Best practice for base class
 private:
     int cmb = 0;
     int cmbMx = 0;
