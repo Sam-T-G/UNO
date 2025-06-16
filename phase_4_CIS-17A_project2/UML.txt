@@ -1,0 +1,15 @@
++-----------------+     +------------+     +-------------+
+|     Player      |     |    Card    |     |   Scores    |
++-----------------+     +------------+     +-------------+
+| - name: string  |     | color: enum|     | trns: int   |
+| - hand: vector  |     | suit: enum |     | cmbHi: int  |
+| - trns: int     |     +------------+     +-------------+
+| - cmb: int      |
+| - cmbMx: int    |
+| - scr: Scores   |
++-----------------+
+| +drawCard()     |
+| +getScores()    |
+| +resetCombo()   |
+| +getMaxCombo()  |
++-----------------+

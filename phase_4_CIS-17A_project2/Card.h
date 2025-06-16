@@ -1,5 +1,7 @@
 #ifndef CARD_H
 #define CARD_H
+#include <iostream> // Required for ostream
+using namespace std;
 
 enum CardClr
 {
@@ -30,6 +32,12 @@ struct Card
 {
     CardClr color;
     CardSuit suit;
+
+    static int totalDrawn; // Static member declaration
 };
+
+// Operator Overload Prototypes
+bool operator==(const Card &, const Card &);
+ostream &operator<<(ostream &, const Card &);
 
 #endif
