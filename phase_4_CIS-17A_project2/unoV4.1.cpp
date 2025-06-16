@@ -48,16 +48,49 @@ void calcScrs(Player &, Player &npc);
 void readScrs();
 void updtScr(const string &, const Scores &);
 
+// Constructor
+Player::Player()
+{
+    name = "";
+    trns = 0;
+    cmb = 0;
+    cmbMx = 0;
+    hand.clear(); // Optional, vector default is already empty
+}
+
+// Destructor
+Player::~Player()
+{
+    hand.clear(); // Optional, vector handles memory automatically
+}
+
+void Player::rstCmb()
+{
+    cmb = 0;
+}
+
+void Player::updCmb()
+{
+    cmb++;
+    if (cmb > cmbMx)
+        cmbMx = cmb;
+}
+
+void Player::drwCrd()
+{
+    Card newCard;
+    newCard.color = static_cast<CardClr>(rand() % 5);
+    newCard.suit = static_cast<CardSuit>(rand() % 13);
+    hand.push_back(newCard);
+}
+
+// Wrappers
 void Player::resetCombo() { rstCmb(); }
 void Player::updateCombo() { updCmb(); }
 void Player::drawCard() { drwCrd(); }
-
 Scores Player::getScores() const { return scr; }
 void Player::setScores(const Scores &s) { scr = s; }
-int Player::getMaxCombo() const
-{
-    return cmbMx;
-}
+int Player::getMaxCombo() const { return cmbMx; }
 
 Card draw();
 
