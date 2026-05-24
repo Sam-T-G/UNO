@@ -1,7 +1,8 @@
 #include "NPCPlayer.h"
 #include <stack>
+#include <queue>
 
-extern void npcTrn(Player &, Player &, std::stack<Card> &, bool &);
+extern void npcTrn(Player &, Player &, std::stack<Card> &, std::queue<Card> &, bool &);
 
 NPCPlayer::NPCPlayer()
 {
@@ -13,9 +14,9 @@ void NPCPlayer::printRole() const
     cout << name << " is a " << role << " player.\n";
 }
 
-void NPCPlayer::takeTurn(Player &opponent, std::stack<Card> &discard, bool &turn)
+void NPCPlayer::takeTurn(Player &opponent, std::stack<Card> &discard, std::queue<Card> &deck, bool &turn)
 {
-    npcTrn(opponent, *this, discard, turn);
+    npcTrn(opponent, *this, discard, deck, turn);
 }
 
 // SAVE FOR FUTURE IMPLEMENTATION

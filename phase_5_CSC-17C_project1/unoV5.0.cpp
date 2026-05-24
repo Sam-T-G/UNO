@@ -11,6 +11,7 @@ Purpose: UNO! Game Version 5.0
 #include <string>
 #include <vector>
 #include <stack>
+#include <queue>
 #include <algorithm>
 #include <fstream>
 #include "Player.h"
@@ -38,13 +39,14 @@ struct SaveData
 
 void menu(Player &);                              // Function to display modular main menu screen
 void draw(Player &);                              // Modular Function to Draw a Card
-void deal(Player &, Player &);                    // Function to deal initial hand to a given player
+void initDeck(queue<Card> &);                     // Function to build and shuffle the 100-card draw deck
+void deal(Player &, Player &, queue<Card> &);     // Function to deal initial hand to a given player
 void actvCrd(Card &);                             // Function to place current active card
 void crdDisp(Player &);                           // Function to display current card in play
 void usrInt(Player &, Player &, Card &);                  // Function to show user interface and prompt
-void play(Player &, Player &, int, stack<Card> &, bool &); // Function to put a card in play and to check if the play is valid
-void plyrTrn(Player &, Player &, stack<Card> &, bool &);  // Function to prompt and process playr turn
-void npcTrn(Player &, Player &, stack<Card> &, bool &);   // Function to process npc logic
+void play(Player &, Player &, int, stack<Card> &, queue<Card> &, bool &); // Function to put a card in play and to check if the play is valid
+void plyrTrn(Player &, Player &, stack<Card> &, queue<Card> &, bool &);   // Function to prompt and process playr turn
+void npcTrn(Player &, Player &, stack<Card> &, queue<Card> &, bool &);    // Function to process npc logic
 void calcScrs(Player &, Player &npc);
 void readScrs();
 void updtScr(const string &, const Scores &);
@@ -78,28 +80,32 @@ void Player::updCmb()
         cmbMx = cmb;
 }
 
-void Player::drwCrd()
+void Player::drwCrd(queue<Card> &deck)
 {
-    Card newCard;
-    newCard.color = static_cast<CardClr>(rand() % 5);
-    newCard.suit = static_cast<CardSuit>(rand() % 13);
-    hand.push_back(newCard);
+    if (deck.empty())
+    {
+        cout << "Deck exhausted! No card drawn." << endl;
+        return;
+    }
+    hand.push_back(deck.front());
+    deck.pop();
+    Card::totalDrawn++;
 }
-void Player::takeTurn(Player &opponent, stack<Card> &discard, bool &turn)
+void Player::takeTurn(Player &opponent, stack<Card> &discard, queue<Card> &deck, bool &turn)
 {
-    plyrTrn(*this, opponent, discard, turn); // assumes this is the player version
+    plyrTrn(*this, opponent, discard, deck, turn); // assumes this is the player version
 }
 
 // Wrappers
 void Player::resetCombo() { rstCmb(); }
 void Player::updateCombo() { updCmb(); }
-void Player::drawCard() { drwCrd(); }
+void Player::drawCard(queue<Card> &deck) { drwCrd(deck); }
 Scores Player::getScores() const { return scr; }
 void Player::setScores(const Scores &s) { scr = s; }
 int Player::getMaxCombo() const { return cmbMx; }
 int Card::totalDrawn = 0; // static member
 
-Card draw();
+Card draw(queue<Card> &);
 
 string crdInfo(const Card &);
 
@@ -115,10 +121,12 @@ int main(int argv, char **argc)
     // Map the inputs and outputs - Process
     Player *p1 = new Player;  // Create a player 1 structure to hold player's information - later can be modularized
     Player *npc = new Player; // Create an NPC opponent
+    queue<Card> deck;         // Draw deck as STL container adaptor; front() is the next card up
+    initDeck(deck);           // Fill and shuffle the 100-card UNO deck
     stack<Card> discard;      // Discard pile as STL container adaptor; top() is the active card
-    discard.push(draw());     // Seed the pile with the first active card
+    discard.push(draw(deck)); // Seed the pile with the first active card
     menu(*p1); // pass player 1 structure into function
-    deal(*p1, *npc);
+    deal(*p1, *npc, deck);
 
     bool turn = true; // Player starts first
 
@@ -127,11 +135,11 @@ int main(int argv, char **argc)
     {
         if (turn == true) // Player's turn
         {
-            plyrTrn(*p1, *npc, discard, turn);
+            plyrTrn(*p1, *npc, discard, deck, turn);
         }
         else if (turn == false) // NPC's turn
         {
-            npcTrn(*p1, *npc, discard, turn);
+            npcTrn(*p1, *npc, discard, deck, turn);
         }
     }
 
@@ -208,15 +216,63 @@ void menu(Player &p1)
     cout << endl;
 };
 
-// Draw function
-Card draw()
+// Deck initialization function
+// Builds a 100-card UNO distribution into a fixed array, Fisher-Yates shuffles
+// it with rand(), and pushes the shuffled order into the queue. Step 7 will
+// later swap the in-place shuffle for std::shuffle to claim the mutating
+// algorithm rubric line.
+void initDeck(queue<Card> &deck)
 {
-    Card newCrd;
-    newCrd.color = static_cast<CardClr>(rand() % 5);
-    newCrd.suit = static_cast<CardSuit>(rand() % 13);
-    return newCrd;
+    const int DECK_SIZE = 100;
+    Card pool[DECK_SIZE];
+    int idx = 0;
 
+    // 4 non-wild colors: 1x ZERO + 2x each of ONE..NINE + 2x SKIP + 2x DRAW_TWO
+    CardClr colors[] = {RED, BLUE, YELLOW, GREEN};
+    for (CardClr c : colors)
+    {
+        pool[idx++] = {c, ZERO};
+        for (int s = ONE; s <= NINE; s++)
+        {
+            pool[idx++] = {c, static_cast<CardSuit>(s)};
+            pool[idx++] = {c, static_cast<CardSuit>(s)};
+        }
+        pool[idx++] = {c, SKIP};
+        pool[idx++] = {c, SKIP};
+        pool[idx++] = {c, DRAW_TWO};
+        pool[idx++] = {c, DRAW_TWO};
+    }
+    // 4 plain wilds + 4 wild draw-four
+    for (int i = 0; i < 4; i++)
+        pool[idx++] = {WILD, ZERO};
+    for (int i = 0; i < 4; i++)
+        pool[idx++] = {WILD, DRAW_FOUR};
+
+    // Fisher-Yates shuffle using rand(); Step 7 will replace this with std::shuffle.
+    for (int i = DECK_SIZE - 1; i > 0; i--)
+    {
+        int j = rand() % (i + 1);
+        Card tmp = pool[i];
+        pool[i] = pool[j];
+        pool[j] = tmp;
+    }
+
+    for (int i = 0; i < DECK_SIZE; i++)
+        deck.push(pool[i]);
+}
+
+// Draw function: pops the front of the deck queue and returns it.
+Card draw(queue<Card> &deck)
+{
+    if (deck.empty())
+    {
+        cout << "Deck exhausted! Returning placeholder card." << endl;
+        return Card{WILD, ZERO};
+    }
+    Card top = deck.front();
+    deck.pop();
     Card::totalDrawn++;
+    return top;
 }
 
 // Wild Card Function
@@ -291,12 +347,12 @@ void dispCrd(Card &actvCrd)
 }
 
 // Deal function
-void deal(Player &p1, Player &npc)
+void deal(Player &p1, Player &npc, queue<Card> &deck)
 { // Deal 7 Starting cards for player and npc
     for (int i = 0; i < 7; i++)
     {
-        p1.hand.push_back(draw());
-        npc.hand.push_back(draw());
+        p1.hand.push_back(draw(deck));
+        npc.hand.push_back(draw(deck));
     }
 };
 
@@ -422,7 +478,7 @@ string crdInfo(const Card &card)
 }
 
 // Play card function
-void play(Player &p1, Player &npc, int choice, stack<Card> &discard, bool &turn)
+void play(Player &p1, Player &npc, int choice, stack<Card> &discard, queue<Card> &deck, bool &turn)
 {
     // store selected card
     Card slctd = p1.hand[choice];
@@ -457,8 +513,8 @@ void play(Player &p1, Player &npc, int choice, stack<Card> &discard, bool &turn)
         else if (slctd.suit == 11) // DRAW 2
         {
             cout << "DRAW 2 played! Opponent draws 2 cards!" << endl;
-            npc.hand.push_back(draw()); // draw two cards
-            npc.hand.push_back(draw());
+            npc.hand.push_back(draw(deck)); // draw two cards
+            npc.hand.push_back(draw(deck));
             cout << "Opponent now has " << npc.hand.size() << " cards!" << endl;
             turn = true; // Player goes again
         }
@@ -467,7 +523,7 @@ void play(Player &p1, Player &npc, int choice, stack<Card> &discard, bool &turn)
             cout << "DRAW 4 played! Opponent draws 4 cards!" << endl;
             for (int i = 0; i < 4; i++) // loop to process 4 card draw
             {
-                npc.hand.push_back(draw());
+                npc.hand.push_back(draw(deck));
             }
             cout << "Opponent now has " << npc.hand.size() << " cards!" << endl;
             turn = true; // Player goes again
@@ -494,7 +550,7 @@ void play(Player &p1, Player &npc, int choice, stack<Card> &discard, bool &turn)
 }
 
 // Player turn funciton sequence
-void plyrTrn(Player &p1, Player &npc, stack<Card> &discard, bool &turn)
+void plyrTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, bool &turn)
 {
     int choice;
 
@@ -519,7 +575,7 @@ void plyrTrn(Player &p1, Player &npc, stack<Card> &discard, bool &turn)
         else if (choice == -1)
         {
             cout << "You chose to draw a card." << endl;
-            p1.drawCard();
+            p1.drawCard(deck);
             p1.resetCombo(); // Reset combo streak
             turn = true;     // Player goes again after drawing a card
         }
@@ -528,7 +584,7 @@ void plyrTrn(Player &p1, Player &npc, stack<Card> &discard, bool &turn)
             try
             {
                 chkIdx(choice, p1.hand.size());
-                play(p1, npc, choice, discard, turn);
+                play(p1, npc, choice, discard, deck, turn);
             }
             catch (const out_of_range &e)
             {
@@ -540,7 +596,7 @@ void plyrTrn(Player &p1, Player &npc, stack<Card> &discard, bool &turn)
 }
 
 // NPC turn function sequence
-void npcTrn(Player &p1, Player &npc, stack<Card> &discard, bool &turn)
+void npcTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, bool &turn)
 {
     bool valid = false;
     int i = 0;
@@ -588,14 +644,14 @@ void npcTrn(Player &p1, Player &npc, stack<Card> &discard, bool &turn)
                 {
                     cout << "NPC played DRAW 2! You draw 2 cards." << endl;
                     for (int i = 0; i < 2; ++i)
-                        p1.hand.push_back(draw());
+                        p1.hand.push_back(draw(deck));
                     turn = false;
                 }
                 else if (c.suit == DRAW_FOUR)
                 {
                     cout << "NPC played DRAW 4! You draw 4 cards." << endl;
                     for (int i = 0; i < 4; ++i)
-                        p1.hand.push_back(draw());
+                        p1.hand.push_back(draw(deck));
                     turn = false;
                 }
 
@@ -608,7 +664,7 @@ void npcTrn(Player &p1, Player &npc, stack<Card> &discard, bool &turn)
         }
         else
         {
-            Card drawn = draw();
+            Card drawn = draw(deck);
             npc.hand.push_back(drawn);
             cout << "NPC draws a card!" << endl;
             npc.resetCombo(); // Reset combo on failed turn
@@ -643,13 +699,13 @@ void npcTrn(Player &p1, Player &npc, stack<Card> &discard, bool &turn)
                     {
                         cout << "NPC played DRAW 2! You draw 2 cards." << endl;
                         for (int i = 0; i < 2; ++i)
-                            p1.hand.push_back(draw());
+                            p1.hand.push_back(draw(deck));
                     }
                     else if (drawn.suit == DRAW_FOUR)
                     {
                         cout << "NPC played DRAW 4! You draw 4 cards." << endl;
                         for (int i = 0; i < 4; ++i)
-                            p1.hand.push_back(draw());
+                            p1.hand.push_back(draw(deck));
                     }
 
                     turn = false; // NPC goes again
