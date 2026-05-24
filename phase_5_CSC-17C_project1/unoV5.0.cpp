@@ -10,6 +10,7 @@ Purpose: UNO! Game Version 5.0
 #include <cstdlib>
 #include <string>
 #include <vector>
+#include <stack>
 #include <algorithm>
 #include <fstream>
 #include "Player.h"
@@ -40,10 +41,10 @@ void draw(Player &);                              // Modular Function to Draw a 
 void deal(Player &, Player &);                    // Function to deal initial hand to a given player
 void actvCrd(Card &);                             // Function to place current active card
 void crdDisp(Player &);                           // Function to display current card in play
-void usrInt(Player &, Player &, Card &);          // Function to show user interface and prompt
-void play(Card &, Player &);                      // Funcition to put a card in play and to check if the play is valid
-void plyrTrn(Player &, Player &, Card &, bool &); // Function to prompt and process playr turn
-void npcTrn(Player &, Player &, Card &, bool &);  // Function to process npc logic
+void usrInt(Player &, Player &, Card &);                  // Function to show user interface and prompt
+void play(Player &, Player &, int, stack<Card> &, bool &); // Function to put a card in play and to check if the play is valid
+void plyrTrn(Player &, Player &, stack<Card> &, bool &);  // Function to prompt and process playr turn
+void npcTrn(Player &, Player &, stack<Card> &, bool &);   // Function to process npc logic
 void calcScrs(Player &, Player &npc);
 void readScrs();
 void updtScr(const string &, const Scores &);
@@ -84,9 +85,9 @@ void Player::drwCrd()
     newCard.suit = static_cast<CardSuit>(rand() % 13);
     hand.push_back(newCard);
 }
-void Player::takeTurn(Player &opponent, Card &actvCrd, bool &turn)
+void Player::takeTurn(Player &opponent, stack<Card> &discard, bool &turn)
 {
-    plyrTrn(*this, opponent, actvCrd, turn); // assumes this is the player version
+    plyrTrn(*this, opponent, discard, turn); // assumes this is the player version
 }
 
 // Wrappers
@@ -114,7 +115,8 @@ int main(int argv, char **argc)
     // Map the inputs and outputs - Process
     Player *p1 = new Player;  // Create a player 1 structure to hold player's information - later can be modularized
     Player *npc = new Player; // Create an NPC opponent
-    Card actvCrd = draw();
+    stack<Card> discard;      // Discard pile as STL container adaptor; top() is the active card
+    discard.push(draw());     // Seed the pile with the first active card
     menu(*p1); // pass player 1 structure into function
     deal(*p1, *npc);
 
@@ -125,11 +127,11 @@ int main(int argv, char **argc)
     {
         if (turn == true) // Player's turn
         {
-            plyrTrn(*p1, *npc, actvCrd, turn);
+            plyrTrn(*p1, *npc, discard, turn);
         }
         else if (turn == false) // NPC's turn
         {
-            npcTrn(*p1, *npc, actvCrd, turn);
+            npcTrn(*p1, *npc, discard, turn);
         }
     }
 
@@ -420,7 +422,7 @@ string crdInfo(const Card &card)
 }
 
 // Play card function
-void play(Player &p1, Player &npc, int choice, Card &actvCrd, bool &turn)
+void play(Player &p1, Player &npc, int choice, stack<Card> &discard, bool &turn)
 {
     // store selected card
     Card slctd = p1.hand[choice];
@@ -433,12 +435,12 @@ void play(Player &p1, Player &npc, int choice, Card &actvCrd, bool &turn)
     }
 
     // Validate play: same color, same suit (number/action), or wild
-    if (slctd.color == actvCrd.color || slctd.suit == actvCrd.suit || slctd.color == WILD)
+    if (slctd.color == discard.top().color || slctd.suit == discard.top().suit || slctd.color == WILD)
     {
-        actvCrd = slctd;                         // Update active card
+        discard.push(slctd);                     // Push onto the discard pile; new top is the active card
         p1.hand.erase(p1.hand.begin() + choice); // Remove played card
         cout << setw(16) << " " << "You've played a ";
-        dispCrd(actvCrd); // Display active card in human-readable format
+        dispCrd(discard.top()); // Display active card in human-readable format
 
         if (p1.hand.empty())
         {
@@ -474,7 +476,7 @@ void play(Player &p1, Player &npc, int choice, Card &actvCrd, bool &turn)
         // Handle color choice if Wild
         if (slctd.color == WILD)
         {
-            wildCrd(actvCrd); // call wild card function
+            wildCrd(discard.top()); // mutate the top of the discard pile in place
         }
 
         // Keep Track of Player combo
@@ -492,14 +494,14 @@ void play(Player &p1, Player &npc, int choice, Card &actvCrd, bool &turn)
 }
 
 // Player turn funciton sequence
-void plyrTrn(Player &p1, Player &npc, Card &actvCrd, bool &turn)
+void plyrTrn(Player &p1, Player &npc, stack<Card> &discard, bool &turn)
 {
     int choice;
 
     while (turn == true)
     {
-        turn = false;             // Default set turn to false at the start of the loop
-        usrInt(p1, npc, actvCrd); // Display the current game state
+        turn = false;                     // Default set turn to false at the start of the loop
+        usrInt(p1, npc, discard.top());   // Display the current game state; top of pile is the active card
         cout << "--------------------------------------------------------" << endl;
         cout << "Which card would you like to play?: "; // Prompt for visual Clarity
         cin >> choice;                                  // Input player choice
@@ -526,7 +528,7 @@ void plyrTrn(Player &p1, Player &npc, Card &actvCrd, bool &turn)
             try
             {
                 chkIdx(choice, p1.hand.size());
-                play(p1, npc, choice, actvCrd, turn);
+                play(p1, npc, choice, discard, turn);
             }
             catch (const out_of_range &e)
             {
@@ -538,7 +540,7 @@ void plyrTrn(Player &p1, Player &npc, Card &actvCrd, bool &turn)
 }
 
 // NPC turn function sequence
-void npcTrn(Player &p1, Player &npc, Card &actvCrd, bool &turn)
+void npcTrn(Player &p1, Player &npc, stack<Card> &discard, bool &turn)
 {
     bool valid = false;
     int i = 0;
@@ -549,13 +551,13 @@ void npcTrn(Player &p1, Player &npc, Card &actvCrd, bool &turn)
         {
             Card c = npc.hand[i]; // Make a copy of card at given index
 
-            if (c.color == actvCrd.color || c.suit == actvCrd.suit || c.color == WILD)
+            if (c.color == discard.top().color || c.suit == discard.top().suit || c.color == WILD)
             {
-                actvCrd = c;
+                discard.push(c);
                 npc.hand.erase(npc.hand.begin() + i);
                 p1.resetCombo(); // Reset player's combo
 
-                cout << "NPC played: " << crdInfo(actvCrd) << "!" << endl;
+                cout << "NPC played: " << crdInfo(discard.top()) << "!" << endl;
 
                 // Check if NPC hand is empty
                 if (npc.hand.empty())
@@ -571,7 +573,7 @@ void npcTrn(Player &p1, Player &npc, Card &actvCrd, bool &turn)
                 if (c.color == WILD)
                 {
                     CardClr newClr = static_cast<CardClr>(rand() % 4);
-                    actvCrd.color = newClr;
+                    discard.top().color = newClr; // mutate the active card on top of the pile
                     string colors[] = {"Red", "Blue", "Yellow", "Green"};
                     cout << "NPC plays a WILD and chooses " << colors[newClr] << "!" << endl;
                 }
@@ -611,11 +613,11 @@ void npcTrn(Player &p1, Player &npc, Card &actvCrd, bool &turn)
             cout << "NPC draws a card!" << endl;
             npc.resetCombo(); // Reset combo on failed turn
 
-            if (drawn.color == actvCrd.color || drawn.suit == actvCrd.suit || drawn.color == WILD)
+            if (drawn.color == discard.top().color || drawn.suit == discard.top().suit || drawn.color == WILD)
             {
-                actvCrd = drawn;
+                discard.push(drawn);
                 npc.hand.pop_back(); // play the drawn card
-                cout << "NPC plays the drawn card: " << crdInfo(actvCrd) << "!" << endl;
+                cout << "NPC plays the drawn card: " << crdInfo(discard.top()) << "!" << endl;
 
                 // Edge case for when NPC wins with last drawn card
                 if (npc.hand.empty())
@@ -627,7 +629,7 @@ void npcTrn(Player &p1, Player &npc, Card &actvCrd, bool &turn)
                 if (drawn.color == WILD)
                 {
                     CardClr newClr = static_cast<CardClr>(rand() % 4);
-                    actvCrd.color = newClr;
+                    discard.top().color = newClr; // mutate the active card on top of the pile
                     string colors[] = {"Red", "Blue", "Yellow", "Green"};
                     cout << "NPC chooses " << colors[newClr] << "!" << endl;
                 }
