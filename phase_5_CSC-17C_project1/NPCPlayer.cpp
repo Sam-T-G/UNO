@@ -19,8 +19,7 @@ void NPCPlayer::takeTurn(Player &opponent, stack<Card> &discard, queue<Card> &de
     npcTrn(opponent, *this, discard, deck, turn);
 }
 
-// SAVE FOR FUTURE IMPLEMENTATION
-//  void NPCPlayer::disPrvSts() const
-//  {
-//      cout << "[NPC DEBUG] Max Combo: " << getMaxCombo() << ", Turns: " << trns << endl;
-//  }
+void NPCPlayer::disPrvSts() const
+{
+    cout << "[NPC DEBUG] Max Combo: " << getMaxCombo() << ", Turns: " << trns << endl;
+}

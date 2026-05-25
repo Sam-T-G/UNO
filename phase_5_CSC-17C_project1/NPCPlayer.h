@@ -12,7 +12,7 @@ public:
 
     void printRole() const;
     void takeTurn(Player &opponent, stack<Card> &discard, queue<Card> &deck, bool &turn) override;
-    // void disPrvSts() const override;  //save for future implementation
+    void disPrvSts() const override;
 };
 
 #endif

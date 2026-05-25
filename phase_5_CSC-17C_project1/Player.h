@@ -19,7 +19,7 @@ public:
     string name;
     list<Card> hand;
     int trns = 0;
-    // virtual void disPrvSts() const = 0; // Pure virtual function
+    virtual void disPrvSts() const = 0; // Pure virtual; Player is abstract, concrete subclasses must override
     int hndSze() const { return hand.size(); } // inline method
     // Public wrappers for private logic
     void resetCombo();
