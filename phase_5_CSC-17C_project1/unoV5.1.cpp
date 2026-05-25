@@ -363,9 +363,12 @@ void deal(Player &p1, Player &npc, queue<Card> &deck)
 // Sort Hand Function
 void srtHnd(Player &p1)
 {
-    // list<Card> does not support std::sort (no random-access iterators),
-    // so we call the list's own member sort. Step 9 claims this as the
-    // organizational-algorithm rubric line.
+    // v5.1 Step 03: list::sort is the organizational-algorithm rubric line.
+    // std::sort needs random-access iterators; list<Card> only gives
+    // bidirectional, so the free algorithm is off the table and the member
+    // sort (a stable O(n log n) merge sort) is the only legal choice. The
+    // comparator orders by color first then suit, so colors group together
+    // and the hand reads in a predictable order on every turn.
     p1.hand.sort([](const Card &a, const Card &b)
                  {
         if (a.color == b.color) {
