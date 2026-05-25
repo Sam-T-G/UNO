@@ -38,6 +38,7 @@ struct Card
 
 // Operator Overload Prototypes
 bool operator==(const Card &, const Card &);
+bool operator<(const Card &, const Card &); // Step 6: ordering for set<Card> legal-plays computation
 ostream &operator<<(ostream &, const Card &);
 
 #endif
