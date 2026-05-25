@@ -41,18 +41,18 @@ struct SaveData
     Scores scr;    // Score data (turns, combo)
 };
 
-void menu(Player &);                              // Function to display modular main menu screen
-void draw(Player &);                              // Modular Function to Draw a Card
-void initDeck(queue<Card> &);                     // Function to build and shuffle the 100-card draw deck
-void deal(Player &, Player &, queue<Card> &);     // Function to deal initial hand to a given player
-void actvCrd(Card &);                             // Function to place current active card
-void crdDisp(Player &);                           // Function to display current card in play
-void usrInt(Player &, Player &, Card &, const set<Card> &);               // Function to show user interface and prompt; set marks playable hand indices
+void menu(Player &);                                                                         // Function to display modular main menu screen
+void draw(Player &);                                                                         // Modular Function to Draw a Card
+void initDeck(queue<Card> &);                                                                // Function to build and shuffle the 100-card draw deck
+void deal(Player &, Player &, queue<Card> &);                                                // Function to deal initial hand to a given player
+void actvCrd(Card &);                                                                        // Function to place current active card
+void crdDisp(Player &);                                                                      // Function to display current card in play
+void usrInt(Player &, Player &, Card &, const set<Card> &);                                  // Function to show user interface and prompt; set marks playable hand indices
 void play(Player &, Player &, int, stack<Card> &, queue<Card> &, bool &, const set<Card> &); // Function to put a card in play and to check if the play is valid via set::find
-void plyrTrn(Player &, Player &, stack<Card> &, queue<Card> &, bool &);   // Function to prompt and process playr turn
-void npcTrn(Player &, Player &, stack<Card> &, queue<Card> &, bool &);    // Function to process npc logic
-CardClr pickClr(const list<Card> &);                                      // Step 5: tally NPC hand by color via map and pick the dominant one
-set<Card> legalPlays(const list<Card> &, const Card &);                   // Step 6: associative set of playable cards on the active card
+void plyrTrn(Player &, Player &, stack<Card> &, queue<Card> &, bool &);                      // Function to prompt and process playr turn
+void npcTrn(Player &, Player &, stack<Card> &, queue<Card> &, bool &);                       // Function to process npc logic
+CardClr pickClr(const list<Card> &);                                                         // Step 5: tally NPC hand by color via map and pick the dominant one
+set<Card> legalPlays(const list<Card> &, const Card &);                                      // Step 6: associative set of playable cards on the active card
 void calcScrs(Player &, Player &npc);
 void readScrs();
 void updtScr(const string &, const Scores &);
@@ -132,7 +132,7 @@ int main(int argv, char **argc)
     initDeck(deck);           // Fill and shuffle the 100-card UNO deck
     stack<Card> discard;      // Discard pile as STL container adaptor; top() is the active card
     discard.push(draw(deck)); // Seed the pile with the first active card
-    menu(*p1); // pass player 1 structure into function
+    menu(*p1);                // pass player 1 structure into function
     deal(*p1, *npc, deck);
 
     bool turn = true; // Player starts first
@@ -429,7 +429,17 @@ void usrInt(Player &p1, Player &npc, Card &actvCrd, const set<Card> &legal)
     // Display Active Card
     cout << "--------------------------------------------------------" << endl;
     cout << setw(17) << " " << "Active Card: " << crdInfo(actvCrd) << endl;
-    cout << "| Cards in your hand: " << p1.hand.size()
+
+    // v5.1 Step 02: count_if on the hand is the non-mutating-algorithm rubric
+    // line. The lambda reuses Step 6's set<Card> membership test, so a hand
+    // entry contributes when the same card sits in the legal set. Duplicates
+    // in the hand are counted separately (the set dedups; count_if does not),
+    // which makes legalN match the per-card (playable) marks rendered above.
+    int legalN = count_if(p1.hand.begin(), p1.hand.end(),
+                          [&legal](const Card &c)
+                          { return legal.find(c) != legal.end(); });
+
+    cout << "| Cards in your hand: " << p1.hand.size() << " (" << legalN << " playable)"
          << "  | Opponent number of cards: " << npc.hand.size() << " |" << endl;
 
     // Prompt for how player wants to proceed
@@ -594,9 +604,9 @@ void plyrTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, b
 
     while (turn == true)
     {
-        turn = false;                                                 // Default set turn to false at the start of the loop
-        set<Card> legal = legalPlays(p1.hand, discard.top());         // Step 6: rebuild per turn so drawn cards land in the set
-        usrInt(p1, npc, discard.top(), legal);                        // Display the current game state; top of pile is the active card
+        turn = false;                                         // Default set turn to false at the start of the loop
+        set<Card> legal = legalPlays(p1.hand, discard.top()); // Step 6: rebuild per turn so drawn cards land in the set
+        usrInt(p1, npc, discard.top(), legal);                // Display the current game state; top of pile is the active card
         cout << "--------------------------------------------------------" << endl;
         cout << "Which card would you like to play?: "; // Prompt for visual Clarity
         cin >> choice;                                  // Input player choice
