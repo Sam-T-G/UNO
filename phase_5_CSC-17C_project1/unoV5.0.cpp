@@ -13,6 +13,7 @@ Purpose: UNO! Game Version 5.0
 #include <iterator>
 #include <stack>
 #include <queue>
+#include <map>
 #include <algorithm>
 #include <fstream>
 #include "Player.h"
@@ -51,7 +52,8 @@ void npcTrn(Player &, Player &, stack<Card> &, queue<Card> &, bool &);    // Fun
 void calcScrs(Player &, Player &npc);
 void readScrs();
 void updtScr(const string &, const Scores &);
-void chkIdx(int, int); // exception
+bool loadScoreMap(map<string, Scores> &); // Step 4: read scores.dat into an associative container
+void chkIdx(int, int);                    // exception
 
 // Constructor
 Player::Player()
@@ -768,58 +770,83 @@ void calcScrs(Player &p1, Player &npc)
     }
 }
 
-void readScrs()
+// Step 4: slurp scores.dat into a map<string, Scores>. Returns false when the
+// file cannot be opened so the caller can keep its original error message.
+// The on-disk SaveData format stays untouched; the map is purely in-memory.
+bool loadScoreMap(map<string, Scores> &out)
 {
     ifstream in("scores.dat", ios::binary);
     if (!in)
+        return false;
+    SaveData data;
+    while (in.read(reinterpret_cast<char *>(&data), sizeof(SaveData)))
+    {
+        out[data.name] = data.scr;
+    }
+    return true;
+}
+
+void readScrs()
+{
+    map<string, Scores> scores;
+    if (!loadScoreMap(scores))
     {
         cerr << "Error opening scores.dat\n";
         return;
     }
 
-    SaveData data;
-    int count = 1;
-
     cout << "\n"
          << setw(12) << " " << "=== SCORE HISTORY ===\n";
 
-    while (in.read(reinterpret_cast<char *>(&data), sizeof(SaveData)))
+    // Bidirectional iterator walk over the map. Records print in name order
+    // since map keeps its keys sorted, which is a small UX improvement over
+    // the prior insertion-order display.
+    int count = 1;
+    for (map<string, Scores>::iterator it = scores.begin(); it != scores.end(); ++it)
     {
         cout << setw(15) << " " << "Record " << count++ << ":\n";
-        cout << setw(15) << " " << "  Player  : " << data.name << '\n';
-        cout << setw(15) << " " << "  Turns   : " << data.scr.trns << '\n';
-        cout << setw(15) << " " << "  HiCombo : " << data.scr.cmbHi << "\n\n";
+        cout << setw(15) << " " << "  Player  : " << it->first << '\n';
+        cout << setw(15) << " " << "  Turns   : " << it->second.trns << '\n';
+        cout << setw(15) << " " << "  HiCombo : " << it->second.cmbHi << "\n\n";
     }
-
-    in.close();
 }
 
 void updtScr(const string &player, const Scores &newScr)
 {
-    fstream file("scores.dat", ios::in | ios::out | ios::binary);
-    if (!file)
+    map<string, Scores> scores;
+    if (!loadScoreMap(scores))
     {
         cerr << "Failed to open scores.dat\n";
         return;
     }
 
-    SaveData temp;
-    while (file.read(reinterpret_cast<char *>(&temp), sizeof(SaveData)))
+    // O(log n) associative lookup replaces the Phase 4 linear name-scan.
+    map<string, Scores>::iterator it = scores.find(player);
+    if (it == scores.end())
     {
-        if (player == temp.name)
-        {
-            // Move file pointer back to start of this record
-            file.seekp(-static_cast<int>(sizeof(SaveData)), ios::cur);
-            temp.scr = newScr;
-            file.write(reinterpret_cast<char *>(&temp), sizeof(SaveData));
-            cout << "Score for " << player << " updated.\n";
-            file.close();
-            return;
-        }
+        cout << "Player not found in save file.\n";
+        return;
     }
+    it->second = newScr;
 
-    file.close();
-    cout << "Player not found in save file.\n";
+    // Flush the whole map back to disk. Truncate+rewrite preserves the
+    // fixed-size SaveData record format on scores.dat so existing history
+    // stays readable by readScrs.
+    ofstream out("scores.dat", ios::binary | ios::trunc);
+    if (!out)
+    {
+        cerr << "Failed to open scores.dat for writing\n";
+        return;
+    }
+    for (map<string, Scores>::iterator it = scores.begin(); it != scores.end(); ++it)
+    {
+        SaveData temp;
+        strncpy(temp.name, it->first.c_str(), sizeof(temp.name));
+        temp.name[sizeof(temp.name) - 1] = '\0';
+        temp.scr = it->second;
+        out.write(reinterpret_cast<char *>(&temp), sizeof(SaveData));
+    }
+    cout << "Score for " << player << " updated.\n";
 }
 
 void chkIdx(int idx, int max)
