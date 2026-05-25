@@ -9,7 +9,8 @@ Purpose: UNO! Game Version 5.0
 #include <iomanip>
 #include <cstdlib>
 #include <string>
-#include <vector>
+#include <list>
+#include <iterator>
 #include <stack>
 #include <queue>
 #include <algorithm>
@@ -59,13 +60,13 @@ Player::Player()
     trns = 0;
     cmb = 0;
     cmbMx = 0;
-    hand.clear(); // Optional, vector default is already empty
+    hand.clear(); // Optional, list default is already empty
 }
 
 // Destructor
 // Player::~Player()
 // {
-//     hand.clear(); // Optional, vector handles memory automatically
+//     hand.clear(); // Optional, list handles memory automatically
 // }
 
 void Player::rstCmb()
@@ -359,8 +360,11 @@ void deal(Player &p1, Player &npc, queue<Card> &deck)
 // Sort Hand Function
 void srtHnd(Player &p1)
 {
-    sort(p1.hand.begin(), p1.hand.end(), [](const Card &a, const Card &b)
-         {
+    // list<Card> does not support std::sort (no random-access iterators),
+    // so we call the list's own member sort. Step 9 claims this as the
+    // organizational-algorithm rubric line.
+    p1.hand.sort([](const Card &a, const Card &b)
+                 {
         if (a.color == b.color) {
             return a.suit < b.suit;
         }
@@ -379,16 +383,19 @@ void usrInt(Player &p1, Player &npc, Card &actvCrd)
     cout << fixed << setw(16) << " " << "It's your turn, " << p1.name << "!" << endl;
     cout << "--------------------------------------------------------" << endl;
 
-    // Display player's hand
+    // Display player's hand. list<Card> is bidirectional, so we drop the
+    // index-based loop and walk an iterator while keeping a parallel int
+    // for the user-facing "[i]" label.
     cout
         << "Your hand: " << endl;
-    for (int i = 0; i < p1.hand.size(); i++)
+    int i = 0;
+    for (auto it = p1.hand.begin(); it != p1.hand.end(); ++it, ++i)
     {
         cout << " [" << i << "] ";
-        if (p1.hand[i].color == WILD)
+        if (it->color == WILD)
             cout << "Wild";
         else
-            cout << values[p1.hand[i].suit] << " " << colors[p1.hand[i].color];
+            cout << values[it->suit] << " " << colors[it->color];
         cout << endl;
     }
 
@@ -480,21 +487,23 @@ string crdInfo(const Card &card)
 // Play card function
 void play(Player &p1, Player &npc, int choice, stack<Card> &discard, queue<Card> &deck, bool &turn)
 {
-    // store selected card
-    Card slctd = p1.hand[choice];
-
-    // Error check for card range chosen
-    if (choice < 0 || choice >= p1.hand.size())
+    // Error check for card range chosen. Bounds check has to run before the
+    // iterator walk, since std::next past the end is undefined.
+    if (choice < 0 || choice >= static_cast<int>(p1.hand.size()))
     {
         cout << "Invalid choice!" << endl;
         return;
     }
 
+    // Walk the list once and reuse the iterator for both read and erase.
+    auto it = std::next(p1.hand.begin(), choice);
+    Card slctd = *it;
+
     // Validate play: same color, same suit (number/action), or wild
     if (slctd.color == discard.top().color || slctd.suit == discard.top().suit || slctd.color == WILD)
     {
-        discard.push(slctd);                     // Push onto the discard pile; new top is the active card
-        p1.hand.erase(p1.hand.begin() + choice); // Remove played card
+        discard.push(slctd); // Push onto the discard pile; new top is the active card
+        p1.hand.erase(it);   // Remove played card via the cached iterator
         cout << setw(16) << " " << "You've played a ";
         dispCrd(discard.top()); // Display active card in human-readable format
 
@@ -599,18 +608,18 @@ void plyrTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, b
 void npcTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, bool &turn)
 {
     bool valid = false;
-    int i = 0;
+    auto it = npc.hand.begin(); // list<Card> is bidirectional; we advance manually instead of indexing.
 
     while (!valid) // Check if valid play has been made
     {
-        if (i < npc.hand.size())
+        if (it != npc.hand.end())
         {
-            Card c = npc.hand[i]; // Make a copy of card at given index
+            Card c = *it; // Make a copy of card at the current iterator
 
             if (c.color == discard.top().color || c.suit == discard.top().suit || c.color == WILD)
             {
                 discard.push(c);
-                npc.hand.erase(npc.hand.begin() + i);
+                npc.hand.erase(it);
                 p1.resetCombo(); // Reset player's combo
 
                 cout << "NPC played: " << crdInfo(discard.top()) << "!" << endl;
@@ -659,7 +668,7 @@ void npcTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, bo
             }
             else
             {
-                ++i;
+                ++it;
             }
         }
         else

@@ -2,7 +2,7 @@
 #define PLAYER_H
 
 #include <string>
-#include <vector>
+#include <list>
 #include <stack>
 #include <queue>
 #include "Card.h"
@@ -17,7 +17,7 @@ public:
     // ~Player();              // Destructor
     Player(const Player &); // Copy constructor
     string name;
-    vector<Card> hand;
+    list<Card> hand;
     int trns = 0;
     // virtual void disPrvSts() const = 0; // Pure virtual function
     int hndSze() const { return hand.size(); } // inline method
