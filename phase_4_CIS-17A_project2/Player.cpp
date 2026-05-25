@@ -44,3 +44,7 @@ Player::Player(const Player &src)
     cmbMx = src.cmbMx;
     scr = src.scr; // assuming Scores has a working copy constructor or defaulted
 }
+
+void Player::takeTurn(Player &opponent, Card &actvCrd, bool &turn)
+{
+}

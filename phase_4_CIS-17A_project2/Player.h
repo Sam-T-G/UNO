@@ -17,7 +17,7 @@ public:
     string name;
     vector<Card> hand;
     int trns = 0;
-
+    // virtual void disPrvSts() const = 0; // Pure virtual function
     int hndSze() const { return hand.size(); } // inline method
     // Public wrappers for private logic
     void resetCombo();
@@ -27,7 +27,7 @@ public:
     void setScores(const Scores &);
     int getMaxCombo() const;
     virtual void takeTurn(Player &opponent, Card &actvCrd, bool &turn);
-    virtual ~Player() {} // Best practice for base class
+    // virtual ~Player() {} // Best practice for base class
 private:
     int cmb = 0;
     int cmbMx = 0;
