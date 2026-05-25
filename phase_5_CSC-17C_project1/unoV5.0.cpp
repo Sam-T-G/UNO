@@ -49,6 +49,7 @@ void usrInt(Player &, Player &, Card &);                  // Function to show us
 void play(Player &, Player &, int, stack<Card> &, queue<Card> &, bool &); // Function to put a card in play and to check if the play is valid
 void plyrTrn(Player &, Player &, stack<Card> &, queue<Card> &, bool &);   // Function to prompt and process playr turn
 void npcTrn(Player &, Player &, stack<Card> &, queue<Card> &, bool &);    // Function to process npc logic
+CardClr pickClr(const list<Card> &);                                      // Step 5: tally NPC hand by color via map and pick the dominant one
 void calcScrs(Player &, Player &npc);
 void readScrs();
 void updtScr(const string &, const Scores &);
@@ -606,6 +607,29 @@ void plyrTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, b
     }
 }
 
+// Tally the NPC hand by color and return the most-held non-wild color.
+// map<CardClr,int> is the second associative container required by the rubric.
+CardClr pickClr(const list<Card> &hand)
+{
+    map<CardClr, int> tally;
+    for (list<Card>::const_iterator it = hand.begin(); it != hand.end(); ++it)
+        if (it->color != WILD)
+            tally[it->color]++;
+
+    if (tally.empty()) // hand was all wilds; fall back to a random color
+        return static_cast<CardClr>(rand() % 4);
+
+    CardClr best = tally.begin()->first;
+    int bestN = tally.begin()->second;
+    for (map<CardClr, int>::const_iterator it = tally.begin(); it != tally.end(); ++it)
+        if (it->second > bestN)
+        {
+            best = it->first;
+            bestN = it->second;
+        }
+    return best;
+}
+
 // NPC turn function sequence
 void npcTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, bool &turn)
 {
@@ -639,8 +663,8 @@ void npcTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, bo
 
                 if (c.color == WILD)
                 {
-                    CardClr newClr = static_cast<CardClr>(rand() % 4);
-                    discard.top().color = newClr; // mutate the active card on top of the pile
+                    CardClr newClr = pickClr(npc.hand); // most-held color via map tally
+                    discard.top().color = newClr;       // mutate the active card on top of the pile
                     string colors[] = {"Red", "Blue", "Yellow", "Green"};
                     cout << "NPC plays a WILD and chooses " << colors[newClr] << "!" << endl;
                 }
@@ -695,8 +719,8 @@ void npcTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, bo
 
                 if (drawn.color == WILD)
                 {
-                    CardClr newClr = static_cast<CardClr>(rand() % 4);
-                    discard.top().color = newClr; // mutate the active card on top of the pile
+                    CardClr newClr = pickClr(npc.hand); // most-held color via map tally
+                    discard.top().color = newClr;       // mutate the active card on top of the pile
                     string colors[] = {"Red", "Blue", "Yellow", "Green"};
                     cout << "NPC chooses " << colors[newClr] << "!" << endl;
                 }
