@@ -11,7 +11,7 @@ public:
     NPCPlayer(); // Constructor
 
     void printRole() const;
-    void takeTurn(Player &opponent, std::stack<Card> &discard, std::queue<Card> &deck, bool &turn) override;
+    void takeTurn(Player &opponent, stack<Card> &discard, queue<Card> &deck, bool &turn) override;
     // void disPrvSts() const override;  //save for future implementation
 };
 

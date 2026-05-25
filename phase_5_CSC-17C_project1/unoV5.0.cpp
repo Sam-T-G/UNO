@@ -496,7 +496,7 @@ void play(Player &p1, Player &npc, int choice, stack<Card> &discard, queue<Card>
     }
 
     // Walk the list once and reuse the iterator for both read and erase.
-    auto it = std::next(p1.hand.begin(), choice);
+    auto it = next(p1.hand.begin(), choice);
     Card slctd = *it;
 
     // Validate play: same color, same suit (number/action), or wild

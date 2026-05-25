@@ -24,18 +24,18 @@ public:
     // Public wrappers for private logic
     void resetCombo();
     void updateCombo();
-    void drawCard(std::queue<Card> &deck);
+    void drawCard(queue<Card> &deck);
     Scores getScores() const;
     void setScores(const Scores &);
     int getMaxCombo() const;
-    virtual void takeTurn(Player &opponent, std::stack<Card> &discard, std::queue<Card> &deck, bool &turn);
+    virtual void takeTurn(Player &opponent, stack<Card> &discard, queue<Card> &deck, bool &turn);
     virtual ~Player() {} // Best practice for base class
 private:
     int cmb = 0;
     int cmbMx = 0;
     void rstCmb();
     void updCmb();
-    void drwCrd(std::queue<Card> &deck);
+    void drwCrd(queue<Card> &deck);
     Scores scr;
 
 protected:
