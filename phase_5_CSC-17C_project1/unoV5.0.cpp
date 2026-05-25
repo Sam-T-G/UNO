@@ -14,6 +14,7 @@ Purpose: UNO! Game Version 5.0
 #include <stack>
 #include <queue>
 #include <map>
+#include <set>
 #include <algorithm>
 #include <fstream>
 #include "Player.h"
@@ -45,11 +46,12 @@ void initDeck(queue<Card> &);                     // Function to build and shuff
 void deal(Player &, Player &, queue<Card> &);     // Function to deal initial hand to a given player
 void actvCrd(Card &);                             // Function to place current active card
 void crdDisp(Player &);                           // Function to display current card in play
-void usrInt(Player &, Player &, Card &);                  // Function to show user interface and prompt
-void play(Player &, Player &, int, stack<Card> &, queue<Card> &, bool &); // Function to put a card in play and to check if the play is valid
+void usrInt(Player &, Player &, Card &, const set<Card> &);               // Function to show user interface and prompt; set marks playable hand indices
+void play(Player &, Player &, int, stack<Card> &, queue<Card> &, bool &, const set<Card> &); // Function to put a card in play and to check if the play is valid via set::find
 void plyrTrn(Player &, Player &, stack<Card> &, queue<Card> &, bool &);   // Function to prompt and process playr turn
 void npcTrn(Player &, Player &, stack<Card> &, queue<Card> &, bool &);    // Function to process npc logic
 CardClr pickClr(const list<Card> &);                                      // Step 5: tally NPC hand by color via map and pick the dominant one
+set<Card> legalPlays(const list<Card> &, const Card &);                   // Step 6: associative set of playable cards on the active card
 void calcScrs(Player &, Player &npc);
 void readScrs();
 void updtScr(const string &, const Scores &);
@@ -375,7 +377,29 @@ void srtHnd(Player &p1)
 }
 
 // User Interface Function
-void usrInt(Player &p1, Player &npc, Card &actvCrd)
+// Lexicographic ordering on (color, suit). Required by set<Card> for the
+// Step 6 legal-plays computation. The ordering itself is not user-visible;
+// the set only needs totality, not a meaningful sort.
+bool operator<(const Card &a, const Card &b)
+{
+    if (a.color != b.color)
+        return a.color < b.color;
+    return a.suit < b.suit;
+}
+
+// Build the set of cards in the hand that are legally playable on the active
+// card. set<Card> is the third associative container; usrInt uses it to mark
+// playable hand indices and play() uses it for O(log n) validation via find.
+set<Card> legalPlays(const list<Card> &hand, const Card &active)
+{
+    set<Card> legal;
+    for (list<Card>::const_iterator it = hand.begin(); it != hand.end(); ++it)
+        if (it->color == active.color || it->suit == active.suit || it->color == WILD)
+            legal.insert(*it);
+    return legal;
+}
+
+void usrInt(Player &p1, Player &npc, Card &actvCrd, const set<Card> &legal)
 {
     srtHnd(p1); // Sort the player's hand before displaying
 
@@ -399,6 +423,8 @@ void usrInt(Player &p1, Player &npc, Card &actvCrd)
             cout << "Wild";
         else
             cout << values[it->suit] << " " << colors[it->color];
+        if (legal.find(*it) != legal.end()) // Step 6: set<Card> membership marks playable cards
+            cout << "  (playable)";
         cout << endl;
     }
 
@@ -488,10 +514,10 @@ string crdInfo(const Card &card)
 }
 
 // Play card function
-void play(Player &p1, Player &npc, int choice, stack<Card> &discard, queue<Card> &deck, bool &turn)
+void play(Player &p1, Player &npc, int choice, stack<Card> &discard, queue<Card> &deck, bool &turn, const set<Card> &legal)
 {
     // Error check for card range chosen. Bounds check has to run before the
-    // iterator walk, since std::next past the end is undefined.
+    // iterator walk, since next past the end is undefined.
     if (choice < 0 || choice >= static_cast<int>(p1.hand.size()))
     {
         cout << "Invalid choice!" << endl;
@@ -502,8 +528,10 @@ void play(Player &p1, Player &npc, int choice, stack<Card> &discard, queue<Card>
     list<Card>::iterator it = next(p1.hand.begin(), choice);
     Card slctd = *it;
 
-    // Validate play: same color, same suit (number/action), or wild
-    if (slctd.color == discard.top().color || slctd.suit == discard.top().suit || slctd.color == WILD)
+    // Step 6: validity is now a set<Card> membership check instead of a
+    // linear color/suit/wild test. Same predicate, O(log n) instead of O(1)
+    // on a 7-card hand, but the structural win is the shared truth source.
+    if (legal.find(slctd) != legal.end())
     {
         discard.push(slctd); // Push onto the discard pile; new top is the active card
         p1.hand.erase(it);   // Remove played card via the cached iterator
@@ -568,8 +596,9 @@ void plyrTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, b
 
     while (turn == true)
     {
-        turn = false;                     // Default set turn to false at the start of the loop
-        usrInt(p1, npc, discard.top());   // Display the current game state; top of pile is the active card
+        turn = false;                                                 // Default set turn to false at the start of the loop
+        set<Card> legal = legalPlays(p1.hand, discard.top());         // Step 6: rebuild per turn so drawn cards land in the set
+        usrInt(p1, npc, discard.top(), legal);                        // Display the current game state; top of pile is the active card
         cout << "--------------------------------------------------------" << endl;
         cout << "Which card would you like to play?: "; // Prompt for visual Clarity
         cin >> choice;                                  // Input player choice
@@ -596,7 +625,7 @@ void plyrTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, b
             try
             {
                 chkIdx(choice, p1.hand.size());
-                play(p1, npc, choice, discard, deck, turn);
+                play(p1, npc, choice, discard, deck, turn, legal);
             }
             catch (const out_of_range &e)
             {
