@@ -391,7 +391,7 @@ void usrInt(Player &p1, Player &npc, Card &actvCrd)
     cout
         << "Your hand: " << endl;
     int i = 0;
-    for (auto it = p1.hand.begin(); it != p1.hand.end(); ++it, ++i)
+    for (list<Card>::iterator it = p1.hand.begin(); it != p1.hand.end(); ++it, ++i)
     {
         cout << " [" << i << "] ";
         if (it->color == WILD)
@@ -498,7 +498,7 @@ void play(Player &p1, Player &npc, int choice, stack<Card> &discard, queue<Card>
     }
 
     // Walk the list once and reuse the iterator for both read and erase.
-    auto it = next(p1.hand.begin(), choice);
+    list<Card>::iterator it = next(p1.hand.begin(), choice);
     Card slctd = *it;
 
     // Validate play: same color, same suit (number/action), or wild
@@ -610,7 +610,7 @@ void plyrTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, b
 void npcTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, bool &turn)
 {
     bool valid = false;
-    auto it = npc.hand.begin(); // list<Card> is bidirectional; we advance manually instead of indexing.
+    list<Card>::iterator it = npc.hand.begin(); // list<Card> is bidirectional; we advance manually instead of indexing.
 
     while (!valid) // Check if valid play has been made
     {
