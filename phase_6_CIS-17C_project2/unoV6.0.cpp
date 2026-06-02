@@ -410,9 +410,7 @@ bool operator==(const Card &a, const Card &b)
     return a.color == b.color && a.suit == b.suit;
 }
 
-// Recursive merge sort over the hand vector. Mirrors the lab Data* shape:
-// split at the midpoint, gate each recursive call on a span of at least two,
-// then merge the two sorted halves through a working buffer.
+// Recursive merge sort, vector<Card> overload mirroring the Data* shape.
 void mrgSort(vector<Card> &a, int beg, int end)
 {
     int center = (beg + end) / 2;
@@ -429,9 +427,7 @@ void mrgSort(vector<Card> &a, int beg, int end)
     merge(a, beg, center, end);
 }
 
-// Merge two sorted halves [beg, nlow) and [nlow, nhigh) using a span-sized
-// local working buffer. Hand size caps near 20, so per-call allocation is
-// cheap; the lab pre-allocates because it sorts millions of ints, not a hand.
+// Merge sorted halves through a span-sized work vector allocated per call.
 void merge(vector<Card> &a, int beg, int nlow, int nhigh)
 {
     int span = nhigh - beg;
@@ -463,10 +459,7 @@ void merge(vector<Card> &a, int beg, int nlow, int nhigh)
     }
 }
 
-// Build a vector copy of the hand, run mrgSort over it, and reprint the hand
-// in sorted order with the same (playable) markers usrInt uses. Reached from
-// the [s] menu option. The original list<Card> is untouched so the index the
-// player types still matches the list view they saw first.
+// [s] menu path; mrgSort over a vector copy so the list<Card> indexing stays.
 void showSrt(Player &p1, const unordered_set<Card> &legal)
 {
     vector<Card> buf(p1.hand.begin(), p1.hand.end());
