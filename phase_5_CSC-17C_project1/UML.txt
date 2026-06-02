@@ -1,0 +1,79 @@
+                                  +-----------------------------+
+                                  |   Player  (abstract)        |
+                                  +-----------------------------+
+                                  | + name: string              |
+                                  | + hand: list<Card>          |
+                                  | + trns: int                 |
+                                  | # role: string              |
+                                  | - cmb: int                  |
+                                  | - cmbMx: int                |
+                                  | - scr: Scores               |
+                                  +-----------------------------+
+                                  | + Player()                  |
+                                  | + Player(const Player &)    |
+                                  | + drawCard(queue<Card> &)   |
+                                  | + getScores() : Scores      |
+                                  | + setScores(const Scores &) |
+                                  | + getMaxCombo() : int       |
+                                  | + resetCombo()              |
+                                  | + updateCombo()             |
+                                  | + hndSze() : int (inline)   |
+                                  | + virtual takeTurn(...)     |
+                                  | + virtual disPrvSts() = 0   |
+                                  | + virtual ~Player()         |
+                                  | - drwCrd(queue<Card> &)     |
+                                  | - rstCmb()                  |
+                                  | - updCmb()                  |
+                                  +-----------------------------+
+                                  | friend disPrvSts(const &)   |
+                                  +--------------+--------------+
+                                                 |
+                                  +--------------+--------------+
+                                                 |
+                +--------------------------------+--------------------------------+
+                |                                                                 |
+                | <inherits>                                          <inherits>   |
+                |                                                                 |
++------------------------------+                              +--------------------------------+
+|       HumanPlayer            |                              |          NPCPlayer             |
++------------------------------+                              +--------------------------------+
+|                              |                              |                                |
++------------------------------+                              +--------------------------------+
+| + HumanPlayer()              |                              | + NPCPlayer()                  |
+| + disPrvSts() const override |                              | + printRole() const            |
++------------------------------+                              | + takeTurn(...) override       |
+                                                              | + disPrvSts() const override   |
+                                                              +--------------------------------+
+
+
++------------------------------+     +------------------------------+     +------------------------------+
+|            Card              |     |           Scores             |     |          SaveData            |
++------------------------------+     +------------------------------+     +------------------------------+
+| + color: CardClr             |     | + trns: int                  |     | + name: char[32]             |
+| + suit: CardSuit             |     | + cmbHi: int                 |     | + scr: Scores                |
+| + static totalDrawn: int     |     +------------------------------+     +------------------------------+
++------------------------------+     | template <typename T>        |
+| operator==(const &, const &) |     | T maxValue(T a, T b)         |
+| operator<(const &, const &)  |     +------------------------------+
+| operator<<(ostream &, const&)|
++------------------------------+
+
+
+STL containers in play (Phase 5 additions, all consumed by the driver TU)
+-------------------------------------------------------------------------
+  list<Card>            hand        member of Player; bidirectional iterators
+  set<Card>             legal       built per turn by legalPlays; bidirectional (const)
+  map<string, Scores>   scores      score lookup over scores.dat; bidirectional
+  map<CardClr, int>     tally       NPC wild-color picker in pickClr; bidirectional
+  stack<Card>           discard     adaptor; no iterators exposed
+  queue<Card>           deck        adaptor; no iterators exposed
+
+
+Relationships
+-------------
+  HumanPlayer  --|>  Player       (public inheritance, concrete subclass)
+  NPCPlayer    --|>  Player       (public inheritance, concrete subclass)
+  Player       <>--  Card         (Player aggregates Card via list<Card> hand)
+  Player       <>--  Scores       (Player holds a Scores instance privately)
+  SaveData     <>--  Scores       (SaveData wraps a Scores for binary persistence)
+  Card         ..    operator< / operator== / operator<<   (free-function overloads)
