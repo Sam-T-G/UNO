@@ -10,6 +10,7 @@ Purpose: UNO! Game Version 6.0
 #include <cstdlib>
 #include <string>
 #include <list>
+#include <vector>
 #include <iterator>
 #include <stack>
 #include <queue>
@@ -18,6 +19,7 @@ Purpose: UNO! Game Version 6.0
 #include <algorithm>
 #include <random>
 #include <fstream>
+#include <sstream>
 #include "Player.h"
 #include "HumanPlayer.h"
 #include "NPCPlayer.h"
@@ -56,6 +58,9 @@ void plyrTrn(Player &, Player &, stack<Card> &, queue<Card> &, bool &);         
 void npcTrn(Player &, Player &, stack<Card> &, queue<Card> &, bool &);                                 // Function to process npc logic
 CardClr pickClr(const list<Card> &);                                                                   // tally NPC hand by color via unordered_map and pick the dominant one
 unordered_set<Card> legalPlays(const list<Card> &, const Card &);                                      // hashed cache of playable cards on the active card
+void mrgSort(vector<Card> &, int beg, int end);                                                        // Recursive merge sort over the hand vector; mirrors the lab Data* shape
+void merge(vector<Card> &, int beg, int nlow, int nhigh);                                              // Merge step for mrgSort; allocates one span-sized local working buffer
+void showSrt(Player &, const unordered_set<Card> &);                                                   // Display the hand sorted via mrgSort with playable markers
 void calcScrs(Player &, Player &npc);
 void readScrs();
 void updtScr(const string &, const Scores &);
@@ -405,6 +410,93 @@ bool operator==(const Card &a, const Card &b)
     return a.color == b.color && a.suit == b.suit;
 }
 
+// Recursive merge sort over the hand vector. Mirrors the lab Data* shape:
+// split at the midpoint, gate each recursive call on a span of at least two,
+// then merge the two sorted halves through a working buffer.
+void mrgSort(vector<Card> &a, int beg, int end)
+{
+    int center = (beg + end) / 2;
+    //Base Condition: a half of one or zero elements is already sorted
+    //Recursion: each gated call recurses on its half independently
+    if ((center - beg) > 1)
+    {
+        mrgSort(a, beg, center);
+    }
+    if ((end - center) > 1)
+    {
+        mrgSort(a, center, end);
+    }
+    merge(a, beg, center, end);
+}
+
+// Merge two sorted halves [beg, nlow) and [nlow, nhigh) using a span-sized
+// local working buffer. Hand size caps near 20, so per-call allocation is
+// cheap; the lab pre-allocates because it sorts millions of ints, not a hand.
+void merge(vector<Card> &a, int beg, int nlow, int nhigh)
+{
+    int span = nhigh - beg;
+    vector<Card> work(span);
+    int cntl = beg;
+    int cnth = nlow;
+    for (int i = 0; i < span; i++)
+    {
+        if (cntl == nlow)
+        {
+            work[i] = a[cnth++];
+        }
+        else if (cnth == nhigh)
+        {
+            work[i] = a[cntl++];
+        }
+        else if (a[cntl] < a[cnth])
+        {
+            work[i] = a[cntl++];
+        }
+        else
+        {
+            work[i] = a[cnth++];
+        }
+    }
+    for (int i = 0; i < span; i++)
+    {
+        a[beg + i] = work[i];
+    }
+}
+
+// Build a vector copy of the hand, run mrgSort over it, and reprint the hand
+// in sorted order with the same (playable) markers usrInt uses. Reached from
+// the [s] menu option. The original list<Card> is untouched so the index the
+// player types still matches the list view they saw first.
+void showSrt(Player &p1, const unordered_set<Card> &legal)
+{
+    vector<Card> buf(p1.hand.begin(), p1.hand.end());
+    mrgSort(buf, 0, (int)buf.size());
+
+    string colors[] = {"Red", "Blue", "Yellow", "Green", "Wild"};
+    string values[] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "SKIP", "DRAW 2", "DRAW 4"};
+
+    cout << "--------------------------------------------------------" << endl;
+    cout << "Hand (mergeSort view):" << endl;
+    for (int i = 0; i < (int)buf.size(); i++)
+    {
+        cout << "  ";
+        if (buf[i].color == WILD)
+        {
+            cout << "Wild";
+        }
+        else
+        {
+            cout << values[buf[i].suit] << " " << colors[buf[i].color];
+        }
+        if (legal.find(buf[i]) != legal.end())
+        {
+            cout << "  (playable)";
+        }
+        cout << endl;
+    }
+    cout << "--------------------------------------------------------" << endl;
+}
+
 // Build the playable-cards cache for one player turn.
 unordered_set<Card> legalPlays(const list<Card> &hand, const Card &active)
 {
@@ -469,7 +561,8 @@ void usrInt(Player &p1, Player &npc, Card &actvCrd, const unordered_set<Card> &l
     // Prompt for how player wants to proceed
     cout << "--------------------------------------------------------" << endl;
     cout << setw(16) << " " << "What would you like to do?" << endl;
-    cout << "| Choose a card to play [0-" << p1.hand.size() << "] | Type -1 to draw a card | " << endl;
+    cout << "| Choose a card to play [0-" << p1.hand.size() << "] | Type -1 to draw a card |" << endl;
+    cout << "| [s] show sorted (mergeSort) |" << endl;
 }
 
 // Card Info to Decipher card information
@@ -622,8 +715,6 @@ void play(Player &p1, Player &npc, int choice, stack<Card> &discard, queue<Card>
 // Player turn funciton sequence
 void plyrTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, bool &turn)
 {
-    int choice;
-
     while (turn == true)
     {
         turn = false;                                                   // Default set turn to false at the start of the loop
@@ -631,15 +722,23 @@ void plyrTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, b
         usrInt(p1, npc, discard.top(), legal);                          // Display the current game state; top of pile is the active card
         cout << "--------------------------------------------------------" << endl;
         cout << "Which card would you like to play?: "; // Prompt for visual Clarity
-        cin >> choice;                                  // Input player choice
+
+        string raw;
+        cin >> raw; // Read as text so [s] is distinguishable from an index
+
         cout << "========================================================" << endl;
 
-        // disPrvSts(*p1); //Future implementation to add option to display private stats of player
-
-        if (cin.fail())
+        if (raw == "s" || raw == "S")
         {
-            cin.clear();
-            cin.ignore(1000, '\n');
+            showSrt(p1, legal); // mergeSort path; redisplay then loop back
+            turn = true;
+            continue;
+        }
+
+        int choice;
+        stringstream ss(raw);
+        if (!(ss >> choice) || !ss.eof())
+        {
             cout << "Invalid input. Try again." << endl;
             turn = true;
         }
