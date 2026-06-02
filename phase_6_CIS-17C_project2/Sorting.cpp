@@ -4,6 +4,8 @@
 void mrgSort(Data *a, int beg, int end)
 {
     int center = (beg + end) / 2;
+    //Base Condition: a half of one or zero elements is already sorted
+    //Recursion: each gated call recurses on its half independently
     if ((center - beg) > 1)
     {
         mrgSort(a, beg, center);
@@ -49,9 +51,11 @@ void merge(Data *a, int beg, int nlow, int nhigh)
 // Quick sort, Hoare partition, recursive on each side.
 void qkSort(int *a, int lo, int hi)
 {
+    //Base Condition: lo >= hi means the range has one or zero elements
     if (lo < hi)
     {
         int p = partition(a, lo, hi);
+        //Recursion
         qkSort(a, lo, p);
         qkSort(a, p + 1, hi);
     }

@@ -10,14 +10,18 @@ Purpose: Timing study driver for mrgSort and qkSort from Sorting.h.
 #include <fstream>
 #include <cstdlib>
 #include <ctime>
+#include <chrono>
 #include "Sorting.h"
 using namespace std;
+using namespace std::chrono;
 
-// Wide N range so the timing curve shows the full progression from near-zero
-// to large gap between the two sorts.
-const int NSIZE = 9;
-const int SIZES[NSIZE] = {1000000, 2000000, 4000000, 8000000, 16000000,
-                          32000000, 64000000, 128000000, 256000000};
+// Seven N values spanning 10K to 1M. Range is large enough to expose the
+// O(n log n) growth of both sorts without making the driver runtime long
+// enough to slow down development. Actual game-scale sorts run on N <= 20
+// (a hand) and N <= 200 (the leaderboard), so this study sits well above
+// what the game itself needs.
+const int NSIZE = 7;
+const int SIZES[NSIZE] = {10000, 50000, 100000, 250000, 500000, 750000, 1000000};
 
 Data *fill(int);
 void destroy(Data *);
@@ -31,22 +35,22 @@ int main(int argc, char **argv)
     int tQk[NSIZE];
     int tMr[NSIZE];
 
-    cout << "N\tQSort\tMerge  (seconds)" << endl;
+    cout << "N\tQSort\tMerge  (milliseconds)" << endl;
 
     for (int s = 0; s < NSIZE; s++)
     {
         int n = SIZES[s];
 
         Data *a = fill(n);
-        int beg = time(0);
+        steady_clock::time_point t0 = steady_clock::now();
         qkSort(a->sortit, 0, n - 1);
-        tQk[s] = time(0) - beg;
+        tQk[s] = (int)duration_cast<milliseconds>(steady_clock::now() - t0).count();
         destroy(a);
 
         a = fill(n);
-        beg = time(0);
+        t0 = steady_clock::now();
         mrgSort(a, 0, a->size);
-        tMr[s] = time(0) - beg;
+        tMr[s] = (int)duration_cast<milliseconds>(steady_clock::now() - t0).count();
         destroy(a);
 
         cout << n << "\t" << tQk[s] << "\t" << tMr[s] << endl;
