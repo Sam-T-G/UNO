@@ -7,6 +7,7 @@ Purpose: Timing study driver for mrgSort and qkSort from Sorting.h.
 */
 
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <cstdlib>
 #include <ctime>
@@ -35,7 +36,10 @@ int main(int argc, char **argv)
     int tQk[NSIZE];
     int tMr[NSIZE];
 
-    cout << "N\tQSort\tMerge  (milliseconds)" << endl;
+    cout << setw(10) << "N"
+         << setw(10) << "QSort"
+         << setw(10) << "Merge"
+         << "  (milliseconds)" << endl;
 
     for (int s = 0; s < NSIZE; s++)
     {
@@ -53,7 +57,9 @@ int main(int argc, char **argv)
         tMr[s] = (int)duration_cast<milliseconds>(steady_clock::now() - t0).count();
         destroy(a);
 
-        cout << n << "\t" << tQk[s] << "\t" << tMr[s] << endl;
+        cout << setw(10) << n
+             << setw(10) << tQk[s]
+             << setw(10) << tMr[s] << endl;
     }
 
     writeFit("quick_time.txt", NSIZE, SIZES, tQk);
