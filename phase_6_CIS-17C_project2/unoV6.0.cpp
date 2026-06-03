@@ -61,6 +61,8 @@ unordered_set<Card> legalPlays(const list<Card> &, const Card &);               
 void mrgSort(vector<Card> &, int beg, int end);                                                        // Recursive merge sort over the hand vector; mirrors the lab Data* shape
 void merge(vector<Card> &, int beg, int nlow, int nhigh);                                              // Merge step for mrgSort; allocates one span-sized local working buffer
 void showSrt(Player &, const unordered_set<Card> &);                                                   // Display the hand sorted via mrgSort with playable markers
+void qkSort(vector<pair<string, Scores>> &, int lo, int hi);                                           // Recursive quick sort over the leaderboard vector; sorts by trns ascending
+int partition(vector<pair<string, Scores>> &, int lo, int hi);                                         // Hoare partition keyed on Scores.trns; returns the partition index
 void calcScrs(Player &, Player &npc);
 void readScrs();
 void updtScr(const string &, const Scores &);
@@ -488,6 +490,45 @@ void showSrt(Player &p1, const unordered_set<Card> &legal)
         cout << endl;
     }
     cout << "--------------------------------------------------------" << endl;
+}
+
+// Recursive quick sort, vector<pair<string,Scores>> overload keyed on trns ascending.
+void qkSort(vector<pair<string, Scores>> &a, int lo, int hi)
+{
+    //Base Condition: lo >= hi means the range has one or zero elements
+    if (lo < hi)
+    {
+        int p = partition(a, lo, hi);
+        //Recursion
+        qkSort(a, lo, p);
+        qkSort(a, p + 1, hi);
+    }
+}
+
+// Hoare partition over the leaderboard vector. Pivot is the middle entry's trns.
+int partition(vector<pair<string, Scores>> &a, int lo, int hi)
+{
+    int pivot = a[(lo + hi) / 2].second.trns;
+    int i = lo - 1;
+    int j = hi + 1;
+    while (true)
+    {
+        do
+        {
+            i++;
+        } while (a[i].second.trns < pivot);
+        do
+        {
+            j--;
+        } while (a[j].second.trns > pivot);
+        if (i >= j)
+        {
+            return j;
+        }
+        pair<string, Scores> t = a[i];
+        a[i] = a[j];
+        a[j] = t;
+    }
 }
 
 // Build the playable-cards cache for one player turn.
@@ -987,15 +1028,27 @@ void readScrs()
         return;
     }
 
-    cout << "\n"
-         << setw(12) << " " << "=== SCORE HISTORY ===\n";
+    // Dump the hash table into a vector and sort by trns ascending. Manual loop
+    // because HashTable::iterator does not expose iterator_traits typedefs.
+    vector<pair<string, Scores>> board;
+    for (HashTable<Scores>::iterator it = scores.begin(); it != scores.end(); ++it)
+    {
+        board.push_back(*it);
+    }
+    if (!board.empty())
+    {
+        qkSort(board, 0, (int)board.size() - 1);
+    }
 
-    // for_each over the hash table's forward iterator; bucket order, not name order.
+    cout << "\n"
+         << setw(10) << " " << "=== LEADERBOARD (quickSort, turns asc) ===\n";
+
+    // for_each over the sorted vector keeps the Phase 5 rubric line in place.
     int count = 1;
-    for_each(scores.begin(), scores.end(),
+    for_each(board.begin(), board.end(),
              [&count](const pair<string, Scores> &rec)
              {
-                 cout << setw(15) << " " << "Record " << count++ << ":\n";
+                 cout << setw(15) << " " << "Rank " << count++ << ":\n";
                  cout << setw(15) << " " << "  Player  : " << rec.first << '\n';
                  cout << setw(15) << " " << "  Turns   : " << rec.second.trns << '\n';
                  cout << setw(15) << " " << "  HiCombo : " << rec.second.cmbHi << "\n\n";
