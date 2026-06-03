@@ -35,6 +35,7 @@ struct Card
     CardClr color;
     CardSuit suit;
 
+    // rubric: static int totalDrawn (Ch.13.6)
     static int totalDrawn; // Static member declaration
 };
 
