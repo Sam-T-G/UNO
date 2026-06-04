@@ -1,0 +1,22 @@
+%% Recursive resolver for stackable cards (SKIP / DRAW 2 / DRAW 4).
+%% Three base conditions, one recursion site. MAX_STACK caps depth at 4.
+%%{init: {"theme": "base", "flowchart": {"curve": "step"}, "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#000000", "primaryTextColor": "#000000", "lineColor": "#000000", "clusterBkg": "#ffffff", "clusterBorder": "#000000", "edgeLabelBackground": "#ffffff"}} }%%
+flowchart TD
+    Start([resolveEffect played, stacker, depth, acc])
+    Start --> B1{depth >= MAX_STACK?}
+    B1 -- yes --> Ret1([return])
+    B1 -- no --> B2{isStackable played?}
+    B2 -- no --> Ret2([return])
+    B2 -- yes --> Acc[acc.chnLen += 1<br/>acc.log.push_back label]
+    Acc --> Apply{played.suit?}
+    Apply -- SKIP --> S1[acc.skipTgt := true]
+    Apply -- DRAW_TWO --> S2[acc.drwCnt += 2]
+    Apply -- DRAW_FOUR --> S3[acc.drwCnt += 4]
+    S1 --> Find[nextIt := fndStk stacker.hand]
+    S2 --> Find
+    S3 --> Find
+    Find --> B3{nextIt == end?}
+    B3 -- yes --> Ret3([return])
+    B3 -- no --> Erase[chained := *nextIt<br/>stacker.hand.erase nextIt]
+    Erase --> Rec[/resolveEffect chained, stacker.opponent, depth+1, acc/]
+    Rec --> Done([return])

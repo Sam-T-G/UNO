@@ -1,11 +1,10 @@
-// Pseudo-code -- Phase 5 (unoV5.2.cpp)
+// Pseudo-code -- Phase 6 (unoV6.0.cpp)
 //
 // Writeup artifact: NOT compiled, NOT linked. This file holds the
-// major-function pseudo-code referenced by the Phase 5 writeup PDF
-// (Step 10 deliverable #10). Each block calls out the STL container(s)
-// it touches and the iterator or algorithm the rubric grades; see
-// iterator_categories.md for the per-container contract and
-// requirements.md Phase 5 section for the source-line mapping.
+// major-function pseudo-code referenced by the Phase 6 writeup. Each
+// block calls out the container, algorithm, or rubric concept the body
+// of unoV6.0.cpp depends on. Phase 5 STL anchors that survived into
+// Phase 6 are kept; Phase 6 additions are flagged inline.
 
 /* ============================================================
    main
@@ -37,7 +36,7 @@
    else:
        print "NPC wins!"
 
-   readScrs()                                                 // for_each over score map
+   readScrs()                                                 // for_each over HashTable feeds ScoreBST
    delete p1
    delete npc
    return 0
@@ -64,7 +63,7 @@
 
    random_device rd
    mt19937 rng(rd())
-   shuffle(pool, pool + DECK_SIZE, rng)                       // mutating algorithm (v5.1 Step 01)
+   shuffle(pool, pool + DECK_SIZE, rng)                       // mutating algorithm
 
    for i in 0..DECK_SIZE-1:
        deck.push(pool[i])
@@ -90,15 +89,16 @@
    p1.hand.sort(lambda(a, b):                                 // list::sort, NOT std::sort
        if a.color == b.color:
            return a.suit < b.suit
-       return a.color < b.color)                              // organizational algorithm (v5.1 Step 03)
+       return a.color < b.color)                              // organizational algorithm
    ============================================================ */
 
 
 /* ============================================================
-   legalPlays(const list<Card> &hand, const Card &active) -> set<Card>
+   legalPlays(const list<Card> &hand, const Card &active)
+       -> unordered_set<Card>
    ============================================================
-   set<Card> legal                                            // STL set; ordered by operator< on Card
-   for it from hand.begin() to hand.end():
+   unordered_set<Card> legal                                  // hashed set; O(1) avg insert/find
+   for it from hand.begin() to hand.end():                    // BKDR hash on (color, suit) via std::hash<Card>
        if it->color == active.color
           OR it->suit == active.suit
           OR it->color == WILD:
@@ -108,28 +108,70 @@
 
 
 /* ============================================================
-   usrInt(Player &p1, Player &npc, Card &actv, const set<Card> &legal)
+   mrgSort(vector<Card> &a, int beg, int end)                 // recursive halving driver
    ============================================================
-   srtHnd(p1)                                                 // re-sort the hand each turn
+   // Base Condition: empty or single-element span
+   if end - beg <= 1:
+       return
+   center := beg + (end - beg) / 2
+   // Recursion: descend on both halves
+   mrgSort(a, beg, center)
+   mrgSort(a, center, end)
+   merge(a, beg, center, end)
+   ============================================================ */
+
+
+/* ============================================================
+   merge(vector<Card> &a, int beg, int nlow, int nhigh)
+   ============================================================
+   work := local vector<Card> sized (nhigh - beg)
+   i := beg, j := nlow, k := 0
+   while i < nlow AND j < nhigh:
+       if a[i] < a[j]:                                        // global operator< on Card
+           work[k++] := a[i++]
+       else:
+           work[k++] := a[j++]
+   copy remainder of left half  into work
+   copy remainder of right half into work
+   copy work[0..k) back over a[beg..nhigh)
+   ============================================================ */
+
+
+/* ============================================================
+   showSrt(Player &p1, const unordered_set<Card> &legal)      // [s] menu path
+   ============================================================
+   vector<Card> buf
+   for it from p1.hand.begin() to p1.hand.end():
+       buf.push_back(*it)                                     // list -> vector copy so mrgSort can index
+   mrgSort(buf, 0, buf.size())                                // Phase 6 recursive sort over the hand
+   print sorted hand with "(playable)" marker when legal.count(*it)
+   ============================================================ */
+
+
+/* ============================================================
+   usrInt(Player &p1, Player &npc, Card &actv,
+          const unordered_set<Card> &legal)
+   ============================================================
+   srtHnd(p1)                                                 // list::sort re-orders each turn for display
 
    print "It's your turn, <p1.name>!"
    print "Your hand:"
    i := 0
    for it from p1.hand.begin() to p1.hand.end():              // list<Card>: bidirectional walk
        print "[", i, "] ", card-label(*it)
-       if legal.find(*it) != legal.end():                     // set<Card>: O(log n) membership
+       if legal.find(*it) != legal.end():                     // unordered_set<Card>: O(1) avg membership
            print "  (playable)"
        ++i
 
    print "Active Card: ", crdInfo(actv)
 
-   legalN := count_if(p1.hand.begin(), p1.hand.end(),         // non-mutating algorithm (v5.1 Step 02)
+   legalN := count_if(p1.hand.begin(), p1.hand.end(),         // non-mutating algorithm
                       lambda(c): legal.find(c) != legal.end())
 
    print "| Cards in your hand: ", p1.hand.size(),
          " (", legalN, " playable) |"
    print "What would you like to do?"
-   print "| Choose a card to play [0-N] | Type -1 to draw |"
+   print "| Choose a card [0-N] | -1 to draw | s to mergeSort-view |"
    ============================================================ */
 
 
@@ -139,12 +181,18 @@
    ============================================================
    while turn is true:
        turn := false
-       set<Card> legal := legalPlays(p1.hand, discard.top())
+       unordered_set<Card> legal := legalPlays(p1.hand, discard.top())
        usrInt(p1, npc, discard.top(), legal)
-       read choice from cin
+       read raw string from cin                               // text first so [s] is distinguishable
 
-       if cin failed:
-           recover stream
+       if raw == "s" or raw == "S":
+           showSrt(p1, legal)                                 // mergeSort view; loop again
+           turn := true
+           continue
+
+       parse raw through stringstream into int choice
+       if parse failed OR not at eof:
+           print "Invalid input. Try again."
            turn := true
        else if choice == -1:
            p1.drawCard(deck)
@@ -162,7 +210,8 @@
 
 /* ============================================================
    play(Player &p1, Player &npc, int choice, stack<Card> &discard,
-        queue<Card> &deck, bool &turn, const set<Card> &legal)
+        queue<Card> &deck, bool &turn,
+        const unordered_set<Card> &legal)
    ============================================================
    if choice < 0 or choice >= p1.hand.size():
        print "Invalid choice!"
@@ -171,14 +220,28 @@
    it := next(p1.hand.begin(), choice)                        // O(n) list walk, cached
    slctd := *it
 
-   if legal.find(slctd) != legal.end():                       // set<Card> validates
+   if legal.find(slctd) != legal.end():                       // unordered_set<Card> validates
        print "You've played a ", card-label(slctd)
        discard.push(slctd)
        p1.hand.erase(it)                                      // reuse cached iterator
+
+       if slctd is stackable (SKIP / DRAW_TWO / DRAW_FOUR):
+           EffectAccum acc := {drwCnt:0, skipTgt:false, chnLen:0, log:{}}
+           resolveEffect(slctd, npc, 0, acc)                  // recursive chain resolver
+           for i in 0..acc.drwCnt - 1:
+               npc.hand.push_back(draw(deck))
+           if acc.chnLen > 1:
+               print "Stack chain length: ", acc.chnLen
+           if acc.skipTgt:
+               turn := true                                   // skip target loses next turn
+
+       if slctd.color == WILD:
+           wildCrd(discard.top())                             // prompt for color, mutate top of pile
+
        p1.updateCombo()
+       npc.resetCombo()
        p1.trns += 1
-       handle SKIP / DRAW_2 / DRAW_4 / WILD effects on discard.top()
-       if WILD: ask player for a new color via wildCrd
+
        if p1.hand is empty: return
        turn := false                                          // NPC's turn next
    else:
@@ -188,9 +251,39 @@
 
 
 /* ============================================================
+   resolveEffect(Card played, Player &stacker,
+                 int depth, EffectAccum &acc)
+   ============================================================
+   // Base Condition: depth cap reached
+   if depth >= MAX_STACK:
+       return
+   // Base Condition: played card is not stackable
+   if NOT isStackable(played):
+       return
+
+   acc.chnLen += 1
+   acc.log.push_back(label of played)
+   apply played's draw/skip effect into acc:
+       if played.suit == SKIP:        acc.skipTgt := true
+       if played.suit == DRAW_TWO:    acc.drwCnt += 2
+       if played.suit == DRAW_FOUR:   acc.drwCnt += 4
+
+   nextIt := fndStk(stacker.hand)                             // first stackable in stacker.hand, or end()
+   // Base Condition: no chain card available in stacker.hand
+   if nextIt == stacker.hand.end():
+       return
+
+   chained := *nextIt
+   stacker.hand.erase(nextIt)
+   // Recursion: descend on the chained card with the target swapped
+   resolveEffect(chained, stacker.opponent, depth + 1, acc)
+   ============================================================ */
+
+
+/* ============================================================
    pickClr(const list<Card> &hand) -> CardClr
    ============================================================
-   map<CardClr, int> tally                                    // second associative container
+   unordered_map<CardClr, int> tally                          // hashed second associative container
    for it from hand.begin() to hand.end():
        if it->color != WILD:
            tally[it->color] += 1                              // operator[] zero-inits missing keys
@@ -198,12 +291,76 @@
    if tally is empty:                                         // hand was all wilds
        return random color in {RED, BLUE, YELLOW, GREEN}
 
-   best   := tally.begin()->first
-   bestN  := tally.begin()->second
-   for it from tally.begin() to tally.end():
-       if it->second > bestN:
-           best  := it->first
-           bestN := it->second
+   best   := first key in tally
+   bestN  := tally[best]
+   for kv in tally:
+       if kv.second > bestN:
+           best  := kv.first
+           bestN := kv.second
+   return best
+   ============================================================ */
+
+
+/* ============================================================
+   HandGraph(const list<Card> &hand)                          // adjacency-list build
+   ============================================================
+   nds := vector<Card> copied from hand
+   n   := nds.size()
+   adj := vector<vector<int>> of size n, each empty
+   for i in 0..n-1:
+       for j in i+1..n-1:
+           if shrAttr(nds[i], nds[j]):                        // edge: shared color OR shared suit
+               adj[i].push_back(j)
+               adj[j].push_back(i)
+   ============================================================ */
+
+
+/* ============================================================
+   HandGraph::bfsFrom(int start, const vector<bool> &skip) const -> int
+   ============================================================
+   seen := vector<bool>(n, false)
+   queue<int> q
+   q.push(start)
+   seen[start] := true
+   count := 0
+   while q not empty:
+       u := q.front(); q.pop()
+       if skip[u]: continue                                   // multi-source BFS respects removal mask
+       count += 1
+       for v in adj[u]:
+           if NOT seen[v] AND NOT skip[v]:
+               seen[v] := true
+               q.push(v)
+   return count
+   ============================================================ */
+
+
+/* ============================================================
+   HandGraph::dfsFrom(int u, vector<bool> &seen,
+                      list<Card> &out) const
+   ============================================================
+   // Base Condition: stop when a node has already been visited
+   if seen[u]: return
+   seen[u] := true
+   out.push_back(nds[u])
+   // Recursion: descend into every unvisited neighbor
+   for v in adj[u]:
+       dfsFrom(v, seen, out)
+   ============================================================ */
+
+
+/* ============================================================
+   HandGraph::largestCompAfter(const Card &removed) const -> int
+   ============================================================
+   r := idxOf(removed)
+   skip := vector<bool>(n, false)
+   if r >= 0: skip[r] := true                                 // hypothetical play: hide removed node
+   seen := vector<bool>(n, false)
+   best := 0
+   for u in 0..n-1:                                           // multi-source BFS over unseen, unskipped
+       if seen[u] OR skip[u]: continue
+       size := bfsFrom(u, skip with seen folded in)
+       if size > best: best := size
    return best
    ============================================================ */
 
@@ -214,6 +371,26 @@
    ============================================================
    valid := false
    it    := npc.hand.begin()                                  // list<Card>: bidirectional first-fit scan
+
+   // Phase 6 scoring: build a hand graph and pre-point the iterator
+   // at the legal candidate whose removal leaves the largest connected
+   // component intact. Strict greater-than means ties fall back to
+   // first-legal, preserving the prior deterministic NPC behavior.
+   HandGraph hg(npc.hand)
+   bstScr := -1
+   bstIt  := npc.hand.end()
+   for cit from npc.hand.begin() to npc.hand.end():
+       cnd := *cit
+       legal := cnd.color == discard.top().color
+                OR cnd.suit == discard.top().suit
+                OR cnd.color == WILD
+       if NOT legal: continue
+       scr := hg.largestCompAfter(cnd)
+       if scr > bstScr:
+           bstScr := scr
+           bstIt  := cit
+   if bstIt != npc.hand.end():
+       it := bstIt
 
    while not valid:
        if it != npc.hand.end():
@@ -229,15 +406,21 @@
 
                turn := true
                if c.color == WILD:
-                   newClr := pickClr(npc.hand)                // map tally picks favored color
+                   newClr := pickClr(npc.hand)                // unordered_map tally picks favored color
                    discard.top().color := newClr
                    print "NPC plays a WILD and chooses ", newClr
-               handle SKIP / DRAW_2 / DRAW_4 (push cards onto p1.hand)
+               if isStackable(c):
+                   EffectAccum acc := {0, false, 0, {}}
+                   resolveEffect(c, p1, 0, acc)               // recursive chain resolver
+                   for i in 0..acc.drwCnt - 1:
+                       p1.hand.push_back(draw(deck))
+                   if acc.chnLen > 1:
+                       print "Stack chain length: ", acc.chnLen
                valid := true
            else:
                ++it
        else:
-           // NPC hand exhausted of options: draw one and try to play it
+           // NPC hand exhausted of legal options: draw one and try to play it
            drawn := draw(deck)
            npc.hand.push_back(drawn)
            print "NPC draws a card!"
@@ -245,7 +428,11 @@
            if drawn playable on discard.top():
                push drawn onto discard
                remove drawn from npc.hand
-               handle WILD / SKIP / DRAW effects
+               if isStackable(drawn):
+                   EffectAccum acc := {0, false, 0, {}}
+                   resolveEffect(drawn, p1, 0, acc)
+                   for i in 0..acc.drwCnt - 1:
+                       p1.hand.push_back(draw(deck))
            valid := true
    ============================================================ */
 
@@ -268,12 +455,12 @@
 
 
 /* ============================================================
-   loadScoreMap(map<string, Scores> &out) -> bool
+   loadScoreMap(HashTable<Scores> &out) -> bool
    ============================================================
    open scores.dat for binary input
    if open failed: return false
    while read fixed-size SaveData record:
-       out[record.name] := record.scr                         // map<string, Scores> built in memory
+       out.insert(record.name, record.scr)                    // HashTable<V>: BKDR(string) -> bucket chain
    return true
    ============================================================ */
 
@@ -281,36 +468,36 @@
 /* ============================================================
    readScrs()
    ============================================================
-   map<string, Scores> scores
+   HashTable<Scores> scores
    if not loadScoreMap(scores):
        print "Error opening scores.dat"
        return
 
-   print "=== SCORE HISTORY ==="
+   print "=== LEADERBOARD (BST in-order, turns asc) ==="
 
-   count := 1
-   for_each(scores.begin(), scores.end(),                     // non-mutating algorithm #2 (v5.2)
-            lambda(const pair<const string, Scores> &rec):
-                print "Record ", count, ": ", rec.first,
-                      " trns=", rec.second.trns,
-                      " hiCombo=", rec.second.cmbHi
-                ++count)
+   ScoreBST tree                                              // ordered by trns asc, cmbHi desc tiebreak
+   for_each(scores.begin(), scores.end(),                     // non-mutating algorithm walks the hash table
+            lambda(const pair<string, Scores> &rec):
+                tree.insert(rec.first, rec.second))
+
+   tree.inOrder()                                             // recursive descent prints rank order
+   // tree is freed at scope exit via post-order destroy walk
    ============================================================ */
 
 
 /* ============================================================
    updtScr(const string &player, const Scores &newScr)
    ============================================================
-   map<string, Scores> scores
+   HashTable<Scores> scores
    if not loadScoreMap(scores):
-       print "Error opening scores.dat"
+       print "Failed to open scores.dat"
        return
 
-   it := scores.find(player)                                  // map::find = O(log n)
-   if it == scores.end():
+   Scores *hit := scores.find(player)                         // O(1) avg hashed lookup; returns V* or null
+   if hit == nullptr:
        print "Player not found in save file."
        return
-   it->second := newScr
+   *hit := newScr                                             // mutate in place through the bucket pointer
 
    open scores.dat in binary truncate mode for writing
    for it from scores.begin() to scores.end():
