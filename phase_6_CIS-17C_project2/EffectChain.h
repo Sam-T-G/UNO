@@ -11,9 +11,9 @@ const int MAX_STACK = 4;
 
 struct EffectAccum
 {
-    int drawCount;
-    bool skipTarget;
-    int chainLen;
+    int drwCnt;
+    bool skipTgt;
+    int chnLen;
     vector<string> log;
 };
 

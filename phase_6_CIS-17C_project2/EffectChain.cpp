@@ -7,7 +7,7 @@ bool isStackable(const Card &c)
     return c.suit == SKIP || c.suit == DRAW_TWO || c.suit == DRAW_FOUR;
 }
 
-static list<Card>::iterator findStackable(list<Card> &hand)
+static list<Card>::iterator fndStk(list<Card> &hand)
 {
     for (auto it = hand.begin(); it != hand.end(); ++it)
     {
@@ -19,21 +19,21 @@ static list<Card>::iterator findStackable(list<Card> &hand)
     return hand.end();
 }
 
-static void applyEffect(const Card &played, EffectAccum &acc)
+static void aplyFx(const Card &played, EffectAccum &acc)
 {
     if (played.suit == SKIP)
     {
-        acc.skipTarget = true;
+        acc.skipTgt = true;
         acc.log.push_back("SKIP applied!");
     }
     else if (played.suit == DRAW_TWO)
     {
-        acc.drawCount += 2;
+        acc.drwCnt += 2;
         acc.log.push_back("DRAW 2 applied!");
     }
     else if (played.suit == DRAW_FOUR)
     {
-        acc.drawCount += 4;
+        acc.drwCnt += 4;
         acc.log.push_back("DRAW 4 applied!");
     }
 }
@@ -51,11 +51,11 @@ void resolveEffect(Card played, Player &stacker, int depth, EffectAccum &acc)
         return;
     }
 
-    applyEffect(played, acc);
-    acc.chainLen = depth + 1;
+    aplyFx(played, acc);
+    acc.chnLen = depth + 1;
 
     //Recursion: peek the stacker's hand for a chainable card and consume it
-    auto next = findStackable(stacker.hand);
+    auto next = fndStk(stacker.hand);
     if (next != stacker.hand.end())
     {
         Card chained = *next;

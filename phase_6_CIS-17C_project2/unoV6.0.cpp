@@ -668,7 +668,7 @@ void play(Player &p1, Player &npc, int choice, stack<Card> &discard, queue<Card>
             EffectAccum acc{0, false, 0, {}};
             resolveEffect(slctd, npc, 0, acc);
 
-            for (int i = 0; i < acc.drawCount; ++i)
+            for (int i = 0; i < acc.drwCnt; ++i)
             {
                 npc.hand.push_back(draw(deck));
             }
@@ -679,19 +679,19 @@ void play(Player &p1, Player &npc, int choice, stack<Card> &discard, queue<Card>
             }
             else if (slctd.suit == DRAW_TWO)
             {
-                cout << "DRAW 2 played! Opponent draws " << acc.drawCount << " cards!" << endl;
+                cout << "DRAW 2 played! Opponent draws " << acc.drwCnt << " cards!" << endl;
             }
             else if (slctd.suit == DRAW_FOUR)
             {
-                cout << "DRAW 4 played! Opponent draws " << acc.drawCount << " cards!" << endl;
+                cout << "DRAW 4 played! Opponent draws " << acc.drwCnt << " cards!" << endl;
             }
-            if (acc.drawCount > 0)
+            if (acc.drwCnt > 0)
             {
                 cout << "Opponent now has " << npc.hand.size() << " cards!" << endl;
             }
-            if (acc.chainLen > 1)
+            if (acc.chnLen > 1)
             {
-                cout << "Stack chain length " << acc.chainLen << "!" << endl;
+                cout << "Stack chain length " << acc.chnLen << "!" << endl;
             }
             turn = true; // Player goes again
         }
@@ -845,7 +845,7 @@ void npcTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, bo
                     EffectAccum acc{0, false, 0, {}};
                     resolveEffect(c, p1, 0, acc);
 
-                    for (int i = 0; i < acc.drawCount; ++i)
+                    for (int i = 0; i < acc.drwCnt; ++i)
                     {
                         p1.hand.push_back(draw(deck));
                     }
@@ -856,15 +856,15 @@ void npcTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, bo
                     }
                     else if (c.suit == DRAW_TWO)
                     {
-                        cout << "NPC played DRAW 2! You draw " << acc.drawCount << " cards." << endl;
+                        cout << "NPC played DRAW 2! You draw " << acc.drwCnt << " cards." << endl;
                     }
                     else if (c.suit == DRAW_FOUR)
                     {
-                        cout << "NPC played DRAW 4! You draw " << acc.drawCount << " cards." << endl;
+                        cout << "NPC played DRAW 4! You draw " << acc.drwCnt << " cards." << endl;
                     }
-                    if (acc.chainLen > 1)
+                    if (acc.chnLen > 1)
                     {
-                        cout << "Stack chain length " << acc.chainLen << "!" << endl;
+                        cout << "Stack chain length " << acc.chnLen << "!" << endl;
                     }
                     turn = false;
                 }
@@ -910,7 +910,7 @@ void npcTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, bo
                     EffectAccum acc{0, false, 0, {}};
                     resolveEffect(drawn, p1, 0, acc);
 
-                    for (int i = 0; i < acc.drawCount; ++i)
+                    for (int i = 0; i < acc.drwCnt; ++i)
                     {
                         p1.hand.push_back(draw(deck));
                     }
@@ -921,15 +921,15 @@ void npcTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, bo
                     }
                     else if (drawn.suit == DRAW_TWO)
                     {
-                        cout << "NPC played DRAW 2! You draw " << acc.drawCount << " cards." << endl;
+                        cout << "NPC played DRAW 2! You draw " << acc.drwCnt << " cards." << endl;
                     }
                     else if (drawn.suit == DRAW_FOUR)
                     {
-                        cout << "NPC played DRAW 4! You draw " << acc.drawCount << " cards." << endl;
+                        cout << "NPC played DRAW 4! You draw " << acc.drwCnt << " cards." << endl;
                     }
-                    if (acc.chainLen > 1)
+                    if (acc.chnLen > 1)
                     {
-                        cout << "Stack chain length " << acc.chainLen << "!" << endl;
+                        cout << "Stack chain length " << acc.chnLen << "!" << endl;
                     }
                     turn = false; // NPC goes again
                 }
