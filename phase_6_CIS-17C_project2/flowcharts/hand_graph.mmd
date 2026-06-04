@@ -2,13 +2,14 @@
 %% Nodes labeled COLOR/SUIT for clarity. Sample hand: RED 3, RED SKIP,
 %% BLUE 3, BLUE 7, WILD DRAW_FOUR. The graph forms two clusters that
 %% merge through the RED-3 / BLUE-3 shared-suit edge.
+%%{init: {"theme": "base", "flowchart": {"curve": "step"}, "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#000000", "primaryTextColor": "#000000", "lineColor": "#000000", "clusterBkg": "#ffffff", "clusterBorder": "#000000", "edgeLabelBackground": "#ffffff"}} }%%
 flowchart TB
     subgraph Build[1. adjacency-list build O n squared]
-        R3((RED 3)):::node
-        RS((RED SKIP)):::node
-        B3((BLUE 3)):::node
-        B7((BLUE 7)):::node
-        WD((WILD DRAW 4)):::wild
+        R3((RED 3))
+        RS((RED SKIP))
+        B3((BLUE 3))
+        B7((BLUE 7))
+        WD((WILD DRAW 4))
         R3 --- RS
         R3 --- B3
         RS --- B3
@@ -16,17 +17,11 @@ flowchart TB
     end
 
     subgraph Score[2. largestCompAfter score per legal play]
-        S1[remove RED 3<br/>component RS, B3, B7 = 3]:::row
-        S2[remove RED SKIP<br/>component R3, B3, B7 = 3]:::row
-        S3[remove BLUE 3<br/>component R3, RS = 2<br/>BLUE 7 isolated = 1<br/>max = 2]:::row
-        S4[remove BLUE 7<br/>component R3, RS, B3 = 3]:::row
-        S5[remove WILD<br/>component R3, RS, B3, B7 = 4]:::winrow
+        S1[remove RED 3<br/>component RS, B3, B7 = 3]
+        S2[remove RED SKIP<br/>component R3, B3, B7 = 3]
+        S3[remove BLUE 3<br/>component R3, RS = 2<br/>BLUE 7 isolated = 1<br/>max = 2]
+        S4[remove BLUE 7<br/>component R3, RS, B3 = 3]
+        S5[remove WILD<br/>component R3, RS, B3, B7 = 4]
     end
 
-    Build --> Pick[/NPC picks WILD<br/>highest score, hand stays connected/]:::winner
-
-    classDef node fill:#fff,stroke:#333,stroke-width:1px
-    classDef wild fill:#eef,stroke:#449,stroke-width:1px
-    classDef row fill:#fff,stroke:#333,stroke-width:1px
-    classDef winrow fill:#dfd,stroke:#070,stroke-width:2px
-    classDef winner fill:#dff,stroke:#069,stroke-width:2px
+    Build --> Pick[/NPC picks WILD<br/>highest score, hand stays connected/]

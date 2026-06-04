@@ -1,26 +1,21 @@
 %% HashTable<V> insert / find lifecycle.
 %% BKDR seed = 131; open chaining; default 17 buckets.
+%%{init: {"theme": "base", "flowchart": {"curve": "step"}, "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#000000", "primaryTextColor": "#000000", "lineColor": "#000000", "clusterBkg": "#ffffff", "clusterBorder": "#000000", "edgeLabelBackground": "#ffffff"}} }%%
 flowchart LR
-    Key([key : string<br/>e.g. Tyla]):::input
-    Key --> Hash[hashStr: seed=131<br/>h = h*131 + ch for ch in key]:::work
-    Hash --> Mod[idx := h mod buckets.size 17]:::work
-    Mod --> Bucket[(bucket idx :<br/>list of pair string,V)]:::bucket
+    Key([key : string<br/>e.g. Tyla])
+    Key --> Hash[hashStr: seed=131<br/>h = h*131 + ch for ch in key]
+    Hash --> Mod[idx := h mod buckets.size 17]
+    Mod --> Bucket[bucket idx :<br/>list of pair string,V]
 
     Bucket --> Op{operation?}
     Op -- insert k,v --> Walk1{walk chain<br/>find key == k}
-    Walk1 -- found --> Over[overwrite value in place]:::work
-    Walk1 -- not found --> App[push_back k,v on chain]:::work
-    Over --> Ret1([return]):::exit
+    Walk1 -- found --> Over[overwrite value in place]
+    Walk1 -- not found --> App[push_back k,v on chain]
+    Over --> Ret1([return])
     App --> Ret1
 
     Op -- find k --> Walk2{walk chain<br/>find key == k}
-    Walk2 -- found --> Ptr[return V*<br/>caller may mutate]:::work
-    Walk2 -- not found --> Null[return nullptr]:::base
-    Ptr --> Ret2([return]):::exit
+    Walk2 -- found --> Ptr[return V*<br/>caller may mutate]
+    Walk2 -- not found --> Null[return nullptr]
+    Ptr --> Ret2([return])
     Null --> Ret2
-
-    classDef input fill:#dff,stroke:#069,stroke-width:2px
-    classDef bucket fill:#eef,stroke:#449,stroke-width:1px
-    classDef work fill:#fff,stroke:#333,stroke-width:1px
-    classDef base fill:#fee,stroke:#a00,stroke-width:1px
-    classDef exit fill:#eee,stroke:#666,stroke-width:1px

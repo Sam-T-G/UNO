@@ -24,7 +24,7 @@ _Migration to recursion, hand-written hashing, parallel recursive sorts, a binar
 
 Phase 6 extends the Phase 5 STL build with five new rubric concepts. We keep every Phase 4 and Phase 5 anchor intact (the friend declaration in `Player.h`, the static `totalDrawn` in `Card.h`, the templated `maxValue` in `Scores.h`, the try / catch around index validation in the main file, and the `for_each` walk over the score store) and layer the Phase 6 deliverables on top. Each new concept lands in its own header / cpp pair so the diff at every step is small and the link line grows one file at a time.
 
-The build target is `g++ -std=c++17 -Wall unoV6.0.cpp NPCPlayer.cpp HumanPlayer.cpp Sorting.cpp ScoreBST.cpp EffectChain.cpp HandGraph.cpp -o uno`. The binary builds clean under `-Wall` with no warnings at every sub-version boundary.
+The active head is `unoV6.5.cpp`; the prior sub-version entry points (`unoV6.0.cpp` through `unoV6.4.cpp`) remain in the directory as frozen snapshots, mirroring the Phase 4 (`unoV4.1.cpp` / `unoV4.2.cpp` / `unoV4.3.cpp`) and Phase 5 (`unoV5.0.cpp` / `unoV5.1.cpp` / `unoV5.2.cpp`) cadence. The build target is `g++ -std=c++17 -Wall unoV6.5.cpp NPCPlayer.cpp HumanPlayer.cpp Sorting.cpp ScoreBST.cpp EffectChain.cpp HandGraph.cpp -o uno`. The binary builds clean under `-Wall` with no warnings at every sub-version boundary.
 
 ---
 

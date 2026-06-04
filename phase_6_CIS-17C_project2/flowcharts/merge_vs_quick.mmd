@@ -1,33 +1,27 @@
 %% Recursion shape compare: merge sort halves first, merges on return;
 %% quick sort partitions first, recurses on each side. Both reach the
 %% same sorted output through different orderings of the split work.
+%%{init: {"theme": "base", "flowchart": {"curve": "step"}, "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#000000", "primaryTextColor": "#000000", "lineColor": "#000000", "clusterBkg": "#ffffff", "clusterBorder": "#000000", "edgeLabelBackground": "#ffffff"}} }%%
 flowchart TB
     subgraph MergeSort[mrgSort recursive halving]
         direction TB
-        M0([mrgSort a, beg, end]):::entry
+        M0([mrgSort a, beg, end])
         M0 --> M1{end - beg <= 1?}
-        M1 -- yes --> Mret([return]):::base
-        M1 -- no --> M2[center := beg + end-beg / 2]:::work
-        M2 --> M3[/mrgSort a, beg, center/]:::recursion
-        M3 --> M4[/mrgSort a, center, end/]:::recursion
-        M4 --> M5[merge a, beg, center, end<br/>through working buffer]:::merge
-        M5 --> Mdone([return]):::exit
+        M1 -- yes --> Mret([return])
+        M1 -- no --> M2[center := beg + end-beg / 2]
+        M2 --> M3[/mrgSort a, beg, center/]
+        M3 --> M4[/mrgSort a, center, end/]
+        M4 --> M5[merge a, beg, center, end<br/>through working buffer]
+        M5 --> Mdone([return])
     end
 
     subgraph QuickSort[qkSort Hoare partition]
         direction TB
-        Q0([qkSort arr, lo, hi]):::entry
+        Q0([qkSort arr, lo, hi])
         Q0 --> Q1{lo < hi?}
-        Q1 -- no --> Qret([return]):::base
-        Q1 -- yes --> Q2[p := partition arr, lo, hi<br/>pivot = arr middle]:::work
-        Q2 --> Q3[/qkSort arr, lo, p/]:::recursion
-        Q3 --> Q4[/qkSort arr, p+1, hi/]:::recursion
-        Q4 --> Qdone([return]):::exit
+        Q1 -- no --> Qret([return])
+        Q1 -- yes --> Q2[p := partition arr, lo, hi<br/>pivot = arr middle]
+        Q2 --> Q3[/qkSort arr, lo, p/]
+        Q3 --> Q4[/qkSort arr, p+1, hi/]
+        Q4 --> Qdone([return])
     end
-
-    classDef entry fill:#dff,stroke:#069,stroke-width:2px
-    classDef base fill:#fee,stroke:#a00,stroke-width:1px
-    classDef work fill:#fff,stroke:#333,stroke-width:1px
-    classDef recursion fill:#efe,stroke:#070,stroke-width:2px
-    classDef merge fill:#ffe,stroke:#770,stroke-width:1px
-    classDef exit fill:#eee,stroke:#666,stroke-width:1px

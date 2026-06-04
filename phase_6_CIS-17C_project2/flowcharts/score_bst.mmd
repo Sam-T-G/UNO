@@ -1,36 +1,30 @@
 %% ScoreBST built from HashTable<Scores> via for_each, then walked in-order.
 %% Order: trns ascending, cmbHi descending as tiebreak.
 %% Lower trns wins; on equal trns the higher cmbHi wins.
+%%{init: {"theme": "base", "flowchart": {"curve": "step"}, "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#000000", "primaryTextColor": "#000000", "lineColor": "#000000", "clusterBkg": "#ffffff", "clusterBorder": "#000000", "edgeLabelBackground": "#ffffff"}} }%%
 flowchart TB
-    Src[(HashTable Scores<br/>name : Scores)]:::source
-    Src --> Fe[/for_each rec : tree.insert rec.first, rec.second/]:::work
+    Src[HashTable Scores<br/>name : Scores]
+    Src --> Fe[/for_each rec : tree.insert rec.first, rec.second/]
     Fe --> Tree
 
     subgraph Tree[ScoreBST after inserts]
         direction TB
-        Root[(Alex trns=4 cmbHi=3)]:::node
-        L1[(Tyla trns=2 cmbHi=5)]:::node
-        R1[(Sam trns=7 cmbHi=4)]:::node
+        Root[Alex trns=4 cmbHi=3]
+        L1[Tyla trns=2 cmbHi=5]
+        R1[Sam trns=7 cmbHi=4]
         Root --- L1
         Root --- R1
     end
 
-    Tree --> IO[/inOrder root, rank/]:::recursion
+    Tree --> IO[/inOrder root, rank/]
 
     subgraph Walk[inOrder recursive descent]
         direction TB
-        W1[visit left subtree]:::work
-        W2[print rank++ : node.name<br/>trns, cmbHi]:::print
-        W3[visit right subtree]:::work
+        W1[visit left subtree]
+        W2[print rank++ : node.name<br/>trns, cmbHi]
+        W3[visit right subtree]
         W1 --> W2 --> W3
     end
 
     IO --> Walk
-    Walk --> Out[/=== LEADERBOARD<br/>1 Tyla 2 5<br/>2 Alex 4 3<br/>3 Sam 7 4/]:::output
-
-    classDef source fill:#eef,stroke:#449,stroke-width:1px
-    classDef node fill:#fff,stroke:#333,stroke-width:1px
-    classDef work fill:#fff,stroke:#333,stroke-width:1px
-    classDef recursion fill:#efe,stroke:#070,stroke-width:2px
-    classDef print fill:#ffe,stroke:#770,stroke-width:1px
-    classDef output fill:#dff,stroke:#069,stroke-width:2px
+    Walk --> Out[/=== LEADERBOARD<br/>1 Tyla 2 5<br/>2 Alex 4 3<br/>3 Sam 7 4/]

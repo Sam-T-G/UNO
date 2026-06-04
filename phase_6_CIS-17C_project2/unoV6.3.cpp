@@ -10,6 +10,7 @@ Purpose: UNO! Game Version 6.0
 #include <cstdlib>
 #include <string>
 #include <list>
+#include <vector>
 #include <iterator>
 #include <stack>
 #include <queue>
@@ -18,12 +19,15 @@ Purpose: UNO! Game Version 6.0
 #include <algorithm>
 #include <random>
 #include <fstream>
+#include <sstream>
 #include "Player.h"
 #include "HumanPlayer.h"
 #include "NPCPlayer.h"
 #include "Card.h"
 #include "Scores.h"
 #include "HashTable.h"
+#include "ScoreBST.h"
+#include "EffectChain.h"
 
 using namespace std;
 
@@ -56,6 +60,9 @@ void plyrTrn(Player &, Player &, stack<Card> &, queue<Card> &, bool &);         
 void npcTrn(Player &, Player &, stack<Card> &, queue<Card> &, bool &);                                 // Function to process npc logic
 CardClr pickClr(const list<Card> &);                                                                   // tally NPC hand by color via unordered_map and pick the dominant one
 unordered_set<Card> legalPlays(const list<Card> &, const Card &);                                      // hashed cache of playable cards on the active card
+void mrgSort(vector<Card> &, int beg, int end);                                                        // Recursive merge sort over the hand vector; mirrors the lab Data* shape
+void merge(vector<Card> &, int beg, int nlow, int nhigh);                                              // Merge step for mrgSort; allocates one span-sized local working buffer
+void showSrt(Player &, const unordered_set<Card> &);                                                   // Display the hand sorted via mrgSort with playable markers
 void calcScrs(Player &, Player &npc);
 void readScrs();
 void updtScr(const string &, const Scores &);
@@ -405,6 +412,86 @@ bool operator==(const Card &a, const Card &b)
     return a.color == b.color && a.suit == b.suit;
 }
 
+// Recursive merge sort, vector<Card> overload mirroring the Data* shape.
+void mrgSort(vector<Card> &a, int beg, int end)
+{
+    int center = (beg + end) / 2;
+    //Base Condition: a half of one or zero elements is already sorted
+    //Recursion: each gated call recurses on its half independently
+    if ((center - beg) > 1)
+    {
+        mrgSort(a, beg, center);
+    }
+    if ((end - center) > 1)
+    {
+        mrgSort(a, center, end);
+    }
+    merge(a, beg, center, end);
+}
+
+// Merge sorted halves through a span-sized work vector allocated per call.
+void merge(vector<Card> &a, int beg, int nlow, int nhigh)
+{
+    int span = nhigh - beg;
+    vector<Card> work(span);
+    int cntl = beg;
+    int cnth = nlow;
+    for (int i = 0; i < span; i++)
+    {
+        if (cntl == nlow)
+        {
+            work[i] = a[cnth++];
+        }
+        else if (cnth == nhigh)
+        {
+            work[i] = a[cntl++];
+        }
+        else if (a[cntl] < a[cnth])
+        {
+            work[i] = a[cntl++];
+        }
+        else
+        {
+            work[i] = a[cnth++];
+        }
+    }
+    for (int i = 0; i < span; i++)
+    {
+        a[beg + i] = work[i];
+    }
+}
+
+// [s] menu path; mrgSort over a vector copy so the list<Card> indexing stays.
+void showSrt(Player &p1, const unordered_set<Card> &legal)
+{
+    vector<Card> buf(p1.hand.begin(), p1.hand.end());
+    mrgSort(buf, 0, (int)buf.size());
+
+    string colors[] = {"Red", "Blue", "Yellow", "Green", "Wild"};
+    string values[] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "SKIP", "DRAW 2", "DRAW 4"};
+
+    cout << "--------------------------------------------------------" << endl;
+    cout << "Hand (mergeSort view):" << endl;
+    for (int i = 0; i < (int)buf.size(); i++)
+    {
+        cout << "  ";
+        if (buf[i].color == WILD)
+        {
+            cout << "Wild";
+        }
+        else
+        {
+            cout << values[buf[i].suit] << " " << colors[buf[i].color];
+        }
+        if (legal.find(buf[i]) != legal.end())
+        {
+            cout << "  (playable)";
+        }
+        cout << endl;
+    }
+    cout << "--------------------------------------------------------" << endl;
+}
+
 // Build the playable-cards cache for one player turn.
 unordered_set<Card> legalPlays(const list<Card> &hand, const Card &active)
 {
@@ -469,7 +556,8 @@ void usrInt(Player &p1, Player &npc, Card &actvCrd, const unordered_set<Card> &l
     // Prompt for how player wants to proceed
     cout << "--------------------------------------------------------" << endl;
     cout << setw(16) << " " << "What would you like to do?" << endl;
-    cout << "| Choose a card to play [0-" << p1.hand.size() << "] | Type -1 to draw a card | " << endl;
+    cout << "| Choose a card to play [0-" << p1.hand.size() << "] | Type -1 to draw a card |" << endl;
+    cout << "| [s] show sorted (mergeSort) |" << endl;
 }
 
 // Card Info to Decipher card information
@@ -574,28 +662,37 @@ void play(Player &p1, Player &npc, int choice, stack<Card> &discard, queue<Card>
             return; // Exit early — game ends after this play
         }
 
-        // Handle special cards
-        if (slctd.suit == 10) // SKIP
+        // Handle special cards via recursive effect chain
+        if (isStackable(slctd))
         {
-            cout << "SKIP played! It's your turn again!" << endl;
-            turn = true; // Player goes again
-        }
-        else if (slctd.suit == 11) // DRAW 2
-        {
-            cout << "DRAW 2 played! Opponent draws 2 cards!" << endl;
-            npc.hand.push_back(draw(deck)); // draw two cards
-            npc.hand.push_back(draw(deck));
-            cout << "Opponent now has " << npc.hand.size() << " cards!" << endl;
-            turn = true; // Player goes again
-        }
-        else if (slctd.suit == 12) // DRAW 4 (if added)
-        {
-            cout << "DRAW 4 played! Opponent draws 4 cards!" << endl;
-            for (int i = 0; i < 4; i++) // loop to process 4 card draw
+            EffectAccum acc{0, false, 0, {}};
+            resolveEffect(slctd, npc, 0, acc);
+
+            for (int i = 0; i < acc.drwCnt; ++i)
             {
                 npc.hand.push_back(draw(deck));
             }
-            cout << "Opponent now has " << npc.hand.size() << " cards!" << endl;
+
+            if (slctd.suit == SKIP)
+            {
+                cout << "SKIP played! It's your turn again!" << endl;
+            }
+            else if (slctd.suit == DRAW_TWO)
+            {
+                cout << "DRAW 2 played! Opponent draws " << acc.drwCnt << " cards!" << endl;
+            }
+            else if (slctd.suit == DRAW_FOUR)
+            {
+                cout << "DRAW 4 played! Opponent draws " << acc.drwCnt << " cards!" << endl;
+            }
+            if (acc.drwCnt > 0)
+            {
+                cout << "Opponent now has " << npc.hand.size() << " cards!" << endl;
+            }
+            if (acc.chnLen > 1)
+            {
+                cout << "Stack chain length " << acc.chnLen << "!" << endl;
+            }
             turn = true; // Player goes again
         }
 
@@ -622,8 +719,6 @@ void play(Player &p1, Player &npc, int choice, stack<Card> &discard, queue<Card>
 // Player turn funciton sequence
 void plyrTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, bool &turn)
 {
-    int choice;
-
     while (turn == true)
     {
         turn = false;                                                   // Default set turn to false at the start of the loop
@@ -631,15 +726,23 @@ void plyrTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, b
         usrInt(p1, npc, discard.top(), legal);                          // Display the current game state; top of pile is the active card
         cout << "--------------------------------------------------------" << endl;
         cout << "Which card would you like to play?: "; // Prompt for visual Clarity
-        cin >> choice;                                  // Input player choice
+
+        string raw;
+        cin >> raw; // Read as text so [s] is distinguishable from an index
+
         cout << "========================================================" << endl;
 
-        // disPrvSts(*p1); //Future implementation to add option to display private stats of player
-
-        if (cin.fail())
+        if (raw == "s" || raw == "S")
         {
-            cin.clear();
-            cin.ignore(1000, '\n');
+            showSrt(p1, legal); // mergeSort path; redisplay then loop back
+            turn = true;
+            continue;
+        }
+
+        int choice;
+        stringstream ss(raw);
+        if (!(ss >> choice) || !ss.eof())
+        {
             cout << "Invalid input. Try again." << endl;
             turn = true;
         }
@@ -652,6 +755,7 @@ void plyrTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, b
         }
         else
         {
+            // rubric: try/catch around index validation (Ch.16.5)
             try
             {
                 chkIdx(choice, p1.hand.size());
@@ -735,27 +839,32 @@ void npcTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, bo
                     cout << "NPC plays a WILD and chooses " << colors[newClr] << "!" << endl;
                 }
 
-                // Handle special cards
-                if (c.suit == SKIP)
+                // Handle special cards via recursive effect chain
+                if (isStackable(c))
                 {
-                    cout << "NPC played SKIP! You lose a turn." << endl;
-                    turn = false;
-                }
-                else if (c.suit == DRAW_TWO)
-                {
-                    cout << "NPC played DRAW 2! You draw 2 cards." << endl;
-                    for (int i = 0; i < 2; ++i)
+                    EffectAccum acc{0, false, 0, {}};
+                    resolveEffect(c, p1, 0, acc);
+
+                    for (int i = 0; i < acc.drwCnt; ++i)
                     {
                         p1.hand.push_back(draw(deck));
                     }
-                    turn = false;
-                }
-                else if (c.suit == DRAW_FOUR)
-                {
-                    cout << "NPC played DRAW 4! You draw 4 cards." << endl;
-                    for (int i = 0; i < 4; ++i)
+
+                    if (c.suit == SKIP)
                     {
-                        p1.hand.push_back(draw(deck));
+                        cout << "NPC played SKIP! You lose a turn." << endl;
+                    }
+                    else if (c.suit == DRAW_TWO)
+                    {
+                        cout << "NPC played DRAW 2! You draw " << acc.drwCnt << " cards." << endl;
+                    }
+                    else if (c.suit == DRAW_FOUR)
+                    {
+                        cout << "NPC played DRAW 4! You draw " << acc.drwCnt << " cards." << endl;
+                    }
+                    if (acc.chnLen > 1)
+                    {
+                        cout << "Stack chain length " << acc.chnLen << "!" << endl;
                     }
                     turn = false;
                 }
@@ -795,30 +904,33 @@ void npcTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, bo
                     cout << "NPC chooses " << colors[newClr] << "!" << endl;
                 }
 
-                // If it's a special card, handle turn
-                if (drawn.suit == SKIP || drawn.suit == DRAW_TWO || drawn.suit == DRAW_FOUR)
+                // If it's a special card, route through recursive effect chain
+                if (isStackable(drawn))
                 {
+                    EffectAccum acc{0, false, 0, {}};
+                    resolveEffect(drawn, p1, 0, acc);
+
+                    for (int i = 0; i < acc.drwCnt; ++i)
+                    {
+                        p1.hand.push_back(draw(deck));
+                    }
+
                     if (drawn.suit == SKIP)
                     {
                         cout << "NPC played SKIP! You lose a turn." << endl;
                     }
                     else if (drawn.suit == DRAW_TWO)
                     {
-                        cout << "NPC played DRAW 2! You draw 2 cards." << endl;
-                        for (int i = 0; i < 2; ++i)
-                        {
-                            p1.hand.push_back(draw(deck));
-                        }
+                        cout << "NPC played DRAW 2! You draw " << acc.drwCnt << " cards." << endl;
                     }
                     else if (drawn.suit == DRAW_FOUR)
                     {
-                        cout << "NPC played DRAW 4! You draw 4 cards." << endl;
-                        for (int i = 0; i < 4; ++i)
-                        {
-                            p1.hand.push_back(draw(deck));
-                        }
+                        cout << "NPC played DRAW 4! You draw " << acc.drwCnt << " cards." << endl;
                     }
-
+                    if (acc.chnLen > 1)
+                    {
+                        cout << "Stack chain length " << acc.chnLen << "!" << endl;
+                    }
                     turn = false; // NPC goes again
                 }
                 else
@@ -895,19 +1007,17 @@ void readScrs()
         return;
     }
 
-    cout << "\n"
-         << setw(12) << " " << "=== SCORE HISTORY ===\n";
-
-    // for_each over the hash table's forward iterator; bucket order, not name order.
-    int count = 1;
+    // for_each over the hash table feeds each record into a fresh ScoreBST.
+    // The tree orders by trns ascending with cmbHi descending tiebreak, so the
+    // in-order walk below prints rank order. The tree is freed at scope exit.
+    ScoreBST tree;
     for_each(scores.begin(), scores.end(),
-             [&count](const pair<string, Scores> &rec)
+             [&tree](const pair<string, Scores> &rec)
              {
-                 cout << setw(15) << " " << "Record " << count++ << ":\n";
-                 cout << setw(15) << " " << "  Player  : " << rec.first << '\n';
-                 cout << setw(15) << " " << "  Turns   : " << rec.second.trns << '\n';
-                 cout << setw(15) << " " << "  HiCombo : " << rec.second.cmbHi << "\n\n";
+                 tree.insert(rec.first, rec.second);
              });
+
+    tree.inOrder();
 }
 
 void updtScr(const string &player, const Scores &newScr)
