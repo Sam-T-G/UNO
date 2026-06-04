@@ -27,6 +27,7 @@ Purpose: UNO! Game Version 6.0
 #include "Scores.h"
 #include "HashTable.h"
 #include "ScoreBST.h"
+#include "EffectChain.h"
 
 using namespace std;
 
@@ -661,28 +662,37 @@ void play(Player &p1, Player &npc, int choice, stack<Card> &discard, queue<Card>
             return; // Exit early — game ends after this play
         }
 
-        // Handle special cards
-        if (slctd.suit == 10) // SKIP
+        // Handle special cards via recursive effect chain
+        if (isStackable(slctd))
         {
-            cout << "SKIP played! It's your turn again!" << endl;
-            turn = true; // Player goes again
-        }
-        else if (slctd.suit == 11) // DRAW 2
-        {
-            cout << "DRAW 2 played! Opponent draws 2 cards!" << endl;
-            npc.hand.push_back(draw(deck)); // draw two cards
-            npc.hand.push_back(draw(deck));
-            cout << "Opponent now has " << npc.hand.size() << " cards!" << endl;
-            turn = true; // Player goes again
-        }
-        else if (slctd.suit == 12) // DRAW 4 (if added)
-        {
-            cout << "DRAW 4 played! Opponent draws 4 cards!" << endl;
-            for (int i = 0; i < 4; i++) // loop to process 4 card draw
+            EffectAccum acc{0, false, 0, {}};
+            resolveEffect(slctd, npc, 0, acc);
+
+            for (int i = 0; i < acc.drwCnt; ++i)
             {
                 npc.hand.push_back(draw(deck));
             }
-            cout << "Opponent now has " << npc.hand.size() << " cards!" << endl;
+
+            if (slctd.suit == SKIP)
+            {
+                cout << "SKIP played! It's your turn again!" << endl;
+            }
+            else if (slctd.suit == DRAW_TWO)
+            {
+                cout << "DRAW 2 played! Opponent draws " << acc.drwCnt << " cards!" << endl;
+            }
+            else if (slctd.suit == DRAW_FOUR)
+            {
+                cout << "DRAW 4 played! Opponent draws " << acc.drwCnt << " cards!" << endl;
+            }
+            if (acc.drwCnt > 0)
+            {
+                cout << "Opponent now has " << npc.hand.size() << " cards!" << endl;
+            }
+            if (acc.chnLen > 1)
+            {
+                cout << "Stack chain length " << acc.chnLen << "!" << endl;
+            }
             turn = true; // Player goes again
         }
 
@@ -745,6 +755,7 @@ void plyrTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, b
         }
         else
         {
+            // rubric: try/catch around index validation (Ch.16.5)
             try
             {
                 chkIdx(choice, p1.hand.size());
@@ -828,27 +839,32 @@ void npcTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, bo
                     cout << "NPC plays a WILD and chooses " << colors[newClr] << "!" << endl;
                 }
 
-                // Handle special cards
-                if (c.suit == SKIP)
+                // Handle special cards via recursive effect chain
+                if (isStackable(c))
                 {
-                    cout << "NPC played SKIP! You lose a turn." << endl;
-                    turn = false;
-                }
-                else if (c.suit == DRAW_TWO)
-                {
-                    cout << "NPC played DRAW 2! You draw 2 cards." << endl;
-                    for (int i = 0; i < 2; ++i)
+                    EffectAccum acc{0, false, 0, {}};
+                    resolveEffect(c, p1, 0, acc);
+
+                    for (int i = 0; i < acc.drwCnt; ++i)
                     {
                         p1.hand.push_back(draw(deck));
                     }
-                    turn = false;
-                }
-                else if (c.suit == DRAW_FOUR)
-                {
-                    cout << "NPC played DRAW 4! You draw 4 cards." << endl;
-                    for (int i = 0; i < 4; ++i)
+
+                    if (c.suit == SKIP)
                     {
-                        p1.hand.push_back(draw(deck));
+                        cout << "NPC played SKIP! You lose a turn." << endl;
+                    }
+                    else if (c.suit == DRAW_TWO)
+                    {
+                        cout << "NPC played DRAW 2! You draw " << acc.drwCnt << " cards." << endl;
+                    }
+                    else if (c.suit == DRAW_FOUR)
+                    {
+                        cout << "NPC played DRAW 4! You draw " << acc.drwCnt << " cards." << endl;
+                    }
+                    if (acc.chnLen > 1)
+                    {
+                        cout << "Stack chain length " << acc.chnLen << "!" << endl;
                     }
                     turn = false;
                 }
@@ -888,30 +904,33 @@ void npcTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, bo
                     cout << "NPC chooses " << colors[newClr] << "!" << endl;
                 }
 
-                // If it's a special card, handle turn
-                if (drawn.suit == SKIP || drawn.suit == DRAW_TWO || drawn.suit == DRAW_FOUR)
+                // If it's a special card, route through recursive effect chain
+                if (isStackable(drawn))
                 {
+                    EffectAccum acc{0, false, 0, {}};
+                    resolveEffect(drawn, p1, 0, acc);
+
+                    for (int i = 0; i < acc.drwCnt; ++i)
+                    {
+                        p1.hand.push_back(draw(deck));
+                    }
+
                     if (drawn.suit == SKIP)
                     {
                         cout << "NPC played SKIP! You lose a turn." << endl;
                     }
                     else if (drawn.suit == DRAW_TWO)
                     {
-                        cout << "NPC played DRAW 2! You draw 2 cards." << endl;
-                        for (int i = 0; i < 2; ++i)
-                        {
-                            p1.hand.push_back(draw(deck));
-                        }
+                        cout << "NPC played DRAW 2! You draw " << acc.drwCnt << " cards." << endl;
                     }
                     else if (drawn.suit == DRAW_FOUR)
                     {
-                        cout << "NPC played DRAW 4! You draw 4 cards." << endl;
-                        for (int i = 0; i < 4; ++i)
-                        {
-                            p1.hand.push_back(draw(deck));
-                        }
+                        cout << "NPC played DRAW 4! You draw " << acc.drwCnt << " cards." << endl;
                     }
-
+                    if (acc.chnLen > 1)
+                    {
+                        cout << "Stack chain length " << acc.chnLen << "!" << endl;
+                    }
                     turn = false; // NPC goes again
                 }
                 else
