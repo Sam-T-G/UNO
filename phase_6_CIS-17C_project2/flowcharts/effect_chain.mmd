@@ -1,0 +1,27 @@
+%% Recursive resolver for stackable cards (SKIP / DRAW 2 / DRAW 4).
+%% Three base conditions, one recursion site. MAX_STACK caps depth at 4.
+flowchart TD
+    Start([resolveEffect played, stacker, depth, acc]):::entry
+    Start --> B1{depth >= MAX_STACK?}
+    B1 -- yes --> Ret1([return]):::base
+    B1 -- no --> B2{isStackable played?}
+    B2 -- no --> Ret2([return]):::base
+    B2 -- yes --> Acc[acc.chnLen += 1<br/>acc.log.push_back label]:::work
+    Acc --> Apply{played.suit?}
+    Apply -- SKIP --> S1[acc.skipTgt := true]:::work
+    Apply -- DRAW_TWO --> S2[acc.drwCnt += 2]:::work
+    Apply -- DRAW_FOUR --> S3[acc.drwCnt += 4]:::work
+    S1 --> Find[nextIt := fndStk stacker.hand]:::work
+    S2 --> Find
+    S3 --> Find
+    Find --> B3{nextIt == end?}
+    B3 -- yes --> Ret3([return]):::base
+    B3 -- no --> Erase[chained := *nextIt<br/>stacker.hand.erase nextIt]:::work
+    Erase --> Rec[/resolveEffect chained, stacker.opponent, depth+1, acc/]:::recursion
+    Rec --> Done([return]):::exit
+
+    classDef entry fill:#dff,stroke:#069,stroke-width:2px
+    classDef base fill:#fee,stroke:#a00,stroke-width:1px
+    classDef work fill:#fff,stroke:#333,stroke-width:1px
+    classDef recursion fill:#efe,stroke:#070,stroke-width:2px
+    classDef exit fill:#eee,stroke:#666,stroke-width:1px
