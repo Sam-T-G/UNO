@@ -1,0 +1,26 @@
+%% HashTable<V> insert / find lifecycle.
+%% BKDR seed = 131; open chaining; default 17 buckets.
+flowchart LR
+    Key([key : string<br/>e.g. Tyla]):::input
+    Key --> Hash[hashStr: seed=131<br/>h = h*131 + ch for ch in key]:::work
+    Hash --> Mod[idx := h mod buckets.size 17]:::work
+    Mod --> Bucket[(bucket idx :<br/>list of pair string,V)]:::bucket
+
+    Bucket --> Op{operation?}
+    Op -- insert k,v --> Walk1{walk chain<br/>find key == k}
+    Walk1 -- found --> Over[overwrite value in place]:::work
+    Walk1 -- not found --> App[push_back k,v on chain]:::work
+    Over --> Ret1([return]):::exit
+    App --> Ret1
+
+    Op -- find k --> Walk2{walk chain<br/>find key == k}
+    Walk2 -- found --> Ptr[return V*<br/>caller may mutate]:::work
+    Walk2 -- not found --> Null[return nullptr]:::base
+    Ptr --> Ret2([return]):::exit
+    Null --> Ret2
+
+    classDef input fill:#dff,stroke:#069,stroke-width:2px
+    classDef bucket fill:#eef,stroke:#449,stroke-width:1px
+    classDef work fill:#fff,stroke:#333,stroke-width:1px
+    classDef base fill:#fee,stroke:#a00,stroke-width:1px
+    classDef exit fill:#eee,stroke:#666,stroke-width:1px
