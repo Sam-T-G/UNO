@@ -28,6 +28,7 @@ Purpose: UNO! Game Version 6.0
 #include "HashTable.h"
 #include "ScoreBST.h"
 #include "EffectChain.h"
+#include "HandGraph.h"
 
 using namespace std;
 
@@ -805,6 +806,33 @@ void npcTrn(Player &p1, Player &npc, stack<Card> &discard, queue<Card> &deck, bo
 {
     bool valid = false;
     list<Card>::iterator it = npc.hand.begin(); // list<Card> is bidirectional; we advance manually instead of indexing.
+
+    // Score each legal play by the largest connected component remaining
+    // after the card leaves the hand. Picking the maximum keeps the hand
+    // graph connected so later turns have more chainable plays. Ties fall
+    // back to first-legal because the comparison is strict.
+    HandGraph hg(npc.hand);
+    int bstScr = -1;
+    list<Card>::iterator bstIt = npc.hand.end();
+    for (auto cit = npc.hand.begin(); cit != npc.hand.end(); ++cit)
+    {
+        const Card &cnd = *cit;
+        bool legal = cnd.color == discard.top().color || cnd.suit == discard.top().suit || cnd.color == WILD;
+        if (!legal)
+        {
+            continue;
+        }
+        int scr = hg.largestCompAfter(cnd);
+        if (scr > bstScr)
+        {
+            bstScr = scr;
+            bstIt = cit;
+        }
+    }
+    if (bstIt != npc.hand.end())
+    {
+        it = bstIt;
+    }
 
     while (!valid) // Check if valid play has been made
     {
